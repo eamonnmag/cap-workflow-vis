@@ -1,0 +1,223 @@
+{
+  "basic_info": {
+    "title": "my analysis"
+  },
+  "workflows": [
+    {
+      "name": "example workflow",
+      "workflow": {
+        "stages": [
+          {
+            "dependencies": [],
+            "scheduler": {
+              "step": {
+                "process": {
+                  "cmd": "/resources/download.py {dataset} {outDir} {outList}",
+                  "process_type": "string-interpolated-cmd"
+                },
+                "publisher": {
+                  "publisher_type": "frompar-pub",
+                  "outputmap": {
+                    "output": "outList"
+                  }
+                },
+                "environment": {
+                  "imagetag": "latest",
+                  "image": "lukasheinrich/dilepton_download",
+                  "envscript": "/resources/downloadenv.sh",
+                  "environment_type": "docker-encapsulated",
+                  "env": {},
+                  "resources": [
+                    "CVMFS",
+                    "GRIDProxy"
+                  ]
+                }
+              },
+              "scheduler_type": "single-from-ctx"
+            },
+            "name": "download",
+            "parameters": {
+              "outList": "/workdir/files.list",
+              "outDir": "/workdir/grid_download",
+              "dataset": "{dataset}"
+            }
+          },
+          {
+            "dependencies": [
+              "download"
+            ],
+            "scheduler": {
+              "outputs": "output",
+              "to_input": "filelist",
+              "scheduler_type": "reduce-from-dep",
+              "step": {
+                "process": {
+                  "cmd": "./DileptonAnalysis {blinded} {include_truth} {filter} {input_type} -maxsyst {maxsyst} -m {minintup} -f {filelist}",
+                  "process_type": "string-interpolated-cmd"
+                },
+                "publisher": {
+                  "publisher_type": "frompar-pub",
+                  "outputmap": {
+                    "output": "minintup"
+                  }
+                },
+                "environment": {
+                  "imagetag": "latest",
+                  "image": "lukasheinrich/dilepton_ntupling",
+                  "envscript": "/resources/ntuplingenv.sh",
+                  "environment_type": "docker-encapsulated",
+                  "env": {},
+                  "resources": [
+                    "CVMFS"
+                  ]
+                }
+              },
+              "from_stages": [
+                "download"
+              ]
+            },
+            "name": "ntupling",
+            "parameters": {
+              "include_truth": "-truth",
+              "maxsyst": 1,
+              "input_type": "-mc",
+              "filter": "-nomllalpgenfilter",
+              "minintup": "/workdir/mini.root",
+              "blinded": "-unblind"
+            }
+          },
+          {
+            "dependencies": [
+              "ntupling"
+            ],
+            "scheduler": {
+              "outputs": "output",
+              "to_input": "miniroot",
+              "scheduler_type": "reduce-from-dep",
+              "step": {
+                "process": {
+                  "cmd": "python preparehistfit.py {miniroot} {efficiency_file} {xsections_file} {modelName} {histfittree_file} {yield_file}",
+                  "process_type": "string-interpolated-cmd"
+                },
+                "publisher": {
+                  "publisher_type": "frompar-pub",
+                  "outputmap": {
+                    "output_tree": "histfittree_file",
+                    "output_yield": "yield_file"
+                  }
+                },
+                "environment": {
+                  "imagetag": "latest",
+                  "image": "lukasheinrich/dilepton_histfitprep",
+                  "envscript": "/resources/prepareenv.sh",
+                  "environment_type": "docker-encapsulated",
+                  "env": {},
+                  "resources": [
+                    "CVMFS"
+                  ]
+                }
+              },
+              "from_stages": [
+                "ntupling"
+              ]
+            },
+            "name": "histfitprepare",
+            "parameters": {
+              "histfittree_file": "/workdir/out.root",
+              "efficiency_file": "{efficiency_file}",
+              "xsections_file": "{xsections_file}",
+              "modelName": "{modelName}",
+              "yield_file": "/workdir/out.yield"
+            }
+          },
+          {
+            "dependencies": [
+              "histfitprepare"
+            ],
+            "scheduler": {
+              "outputs": "output_tree",
+              "to_input": "histfitroot",
+              "scheduler_type": "reduce-from-dep",
+              "step": {
+                "process": {
+                  "cmd": "./luke_run_limit.sh {histfitroot} {fitresults}",
+                  "process_type": "string-interpolated-cmd"
+                },
+                "publisher": {
+                  "publisher_type": "frompar-pub",
+                  "outputmap": {
+                    "output": "fitresults"
+                  }
+                },
+                "environment": {
+                  "imagetag": "latest",
+                  "image": "lukasheinrich/dilepton_fit",
+                  "envscript": "/resources/fitenv.sh",
+                  "environment_type": "docker-encapsulated",
+                  "env": {},
+                  "resources": [
+                    "CVMFS"
+                  ]
+                }
+              },
+              "from_stages": [
+                "histfitprepare"
+              ]
+            },
+            "name": "fit",
+            "parameters": {
+              "fitresults": "/workdir/fit.tgz"
+            }
+          },
+          {
+            "dependencies": [
+              "fit"
+            ],
+            "scheduler": {
+              "outputs": "output",
+              "to_input": "fitresultsarchive",
+              "scheduler_type": "reduce-from-dep",
+              "step": {
+                "process": {
+                  "cmd": "/resources/pMSSM-TwoLep-Fit/post_fit.sh {fitresultsarchive} {workdir} {modelName} {resultsyaml}",
+                  "process_type": "string-interpolated-cmd"
+                },
+                "publisher": {
+                  "publisher_type": "frompar-pub",
+                  "outputmap": {
+                    "output": "resultsyaml"
+                  }
+                },
+                "environment": {
+                  "imagetag": "latest",
+                  "image": "lukasheinrich/dilepton_fit",
+                  "envscript": "/resources/fitenv.sh",
+                  "environment_type": "docker-encapsulated",
+                  "env": {},
+                  "resources": [
+                    "CVMFS"
+                  ]
+                }
+              },
+              "from_stages": [
+                "fit"
+              ]
+            },
+            "name": "postproc",
+            "parameters": {
+              "workdir": "/workdir/postproc",
+              "resultsyaml": "/workdir/results.yaml",
+              "modelName": "{modelName}"
+            }
+          }
+        ],
+        "context": {
+          "efficiency_file": null,
+          "xsections_file": null,
+          "modelName": null,
+          "dataset": null
+        }
+      }
+    }
+  ]
+}

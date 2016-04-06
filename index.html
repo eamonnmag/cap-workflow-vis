@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CAP Workflow Example</title>
+
+    <style>
+        body {
+            font-family: Montserrat;
+        }
+
+        .group {
+            stroke: #fff;
+            stroke-width: 1.5px;
+            cursor: move;
+            opacity: 0.7;
+        }
+
+        #zoom-region {
+            cursor: move;
+        }
+
+        .link {
+            stroke: #3B97D3;
+            stroke-width: 3px;
+        }
+
+        rect {
+            fill: white;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            cursor: pointer;
+        }
+
+        rect.process {
+            stroke: #2c3e50;
+            fill: white;
+        }
+
+        .output .output_header {
+            stroke: #95a5a6;
+            stroke-width: 1px;
+        }
+
+        rect.output {
+            fill: #ecf0f1;
+            stroke: #95a5a6;
+            stroke-width: 1px;
+
+        }
+
+        .node-type {
+            font-size: 9px;
+            fill: #7f8c8d;
+        }
+
+        .label {
+            fill: #2c3e50;
+            font-family: Montserrat;
+            font-size: 12px;
+            font-weight: bolder;
+            text-anchor: middle;
+            cursor: move;
+            pointer-events: none;
+        }
+
+        .label.output {
+            fill: #7f8c8d;
+            font-weight: normal;
+        }
+
+        .node {
+            pointer-events: all;
+        }
+
+        .d3-tip {
+            line-height: 1;
+            font-weight: normal;
+            padding: 12px;
+            background: rgba(44, 62, 80, 0.9);
+            color: #fff;
+            border-radius: 2px;
+        }
+
+        /* Creates a small triangle extender for the tooltip */
+        .d3-tip:after {
+            box-sizing: border-box;
+            display: inline;
+            font-size: 10px;
+            width: 100%;
+            line-height: 1;
+            color: rgba(44, 62, 80, 0.9);
+            content: "\25BC";
+            position: absolute;
+            text-align: center;
+        }
+
+        /* Style northward tooltips differently */
+        .d3-tip.n:after {
+            margin: -1px 0 0 0;
+            top: 100%;
+            left: 0;
+        }
+
+    </style>
+</head>
+<body>
+<div align="center">
+    <img src="CAP-full.svg" width="300px">
+</div>
+<br/>
+<div id="workflow"></div>
+</body>
+<script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.5.16/d3.min.js" type="text/javascript"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/d3-tip/0.6.7/d3-tip.min.js" type="text/javascript"></script>
+<script src="assets/lib/cola.min.js" type="text/javascript"></script>
+<script src="assets/js/vis-workflow.js"></script>
+
+<script type="text/javascript">
+    d3.json('data/basic.json', function (data) {
+        analysis_workflow_vis.render('#workflow', data, {width: 900, height: 800})
+    })
+</script>
+</html>
