@@ -460,7 +460,7 @@
                 "zip_with": [
                   "signal"
                 ],
-                "outputs": "mchisto",
+                "outputs": "mchistos",
                 "from_stages": [
                   "hist_mcsignal"
                 ]
@@ -530,7 +530,7 @@
                 "zip_with": [
                   "signal"
                 ],
-                "outputs": "mchisto",
+                "outputs": "mchistos",
                 "from_stages": [
                   "hist_mcsignal"
                 ]

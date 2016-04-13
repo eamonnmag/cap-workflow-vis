@@ -37,6 +37,11 @@
             fill: white;
         }
 
+        rect.zip {
+            stroke: #f39c12;
+            fill: #f39c12;
+        }
+
         .output .output_header {
             stroke: #95a5a6;
             stroke-width: 1px;
@@ -117,8 +122,8 @@
 <script src="assets/js/vis-workflow.js"></script>
 
 <script type="text/javascript">
-    d3.json('data/basic.json', function (data) {
-        analysis_workflow_vis.render('#workflow', data, {width: 900, height: 800})
+    d3.json('data/eamonn.json', function (data) {
+        analysis_workflow_vis.render('#workflow', data, {width: 1300, height: 800})
     })
 </script>
 </html>
