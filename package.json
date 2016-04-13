@@ -1,0 +1,39 @@
+{
+  "name": "cap-workflow-vis",
+  "description": "Workflow visualization for CERN Analysis Preservation",
+  "version": "0.0.1",
+  "keywords": [
+    "d3,visualization,cern"
+  ],
+  "maintainers": [
+    {
+      "name": "Eamonn Maguire",
+      "email": "eamonnmag@gmail.com",
+      "web": ""
+    },
+    {
+      "name": "Eamonn Maguire",
+      "email": "eamonnmag@gmail.com",
+      "web": ""
+    }
+  ],
+  "dependencies": {
+    "d3": "latest",
+    "d3-tip": "latest"
+  },
+  "bugs": {
+    "web": "http://github.com/eamonnmag/cap-workflow-vis"
+  },
+  "repositories": [
+    {
+      "type": "git",
+      "url": "https://github.com/eamonnmag/cap-workflow-vis.git"
+    }
+  ],
+  "licenses": [
+    {
+      "name": "Apache Version 2.0",
+      "url": "https://github.com/eamonnmag/cap-workflow-vis/blob/master/LICENSE"
+    }
+  ]
+}
