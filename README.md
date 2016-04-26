@@ -21,3 +21,10 @@ d3.json('data/basic.json', function (data) {
 });
 
 ```
+
+
+### Libraries
+
+We are grateful to Webcola and D3.js for their nice layout algorithms: 
+- [Webcola.js](https://github.com/tgdwyer/WebCola)
+- [d3.js](https://github.com/mbostock/d3)
