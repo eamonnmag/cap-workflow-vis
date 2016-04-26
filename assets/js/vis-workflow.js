@@ -216,15 +216,6 @@ var analysis_workflow_vis = (function () {
                     return "url(#" + d.rel + ")";
                 });
 
-            //var group = vis.selectAll(".group")
-            //    .data(graph.groups)
-            //    .enter().append("rect")
-            //    .attr("rx", 8).attr("ry", 8)
-            //    .attr("class", "group")
-            //    .style("fill", function (d, i) {
-            //        return '#ecf0f1';
-            //    }).call(cola_d3.drag);
-
 
             var pad = 10;
             var node = vis.selectAll(".node")
