@@ -152,8 +152,7 @@ var analysis_workflow_vis = (function () {
                             cmd = cmd.replace('{' + parameter_type+ '}', d.info.parameters[parameter_type]);
                         }
 
-                        html = '<span>' + d.name + '</span><br/>' +
-                            '<span>' + cmd + '</span>';
+                        html = '<span>' + d.name + '</span><br/>';
                     }
                     return html;
                 });
@@ -181,13 +180,11 @@ var analysis_workflow_vis = (function () {
 
             var vis = svg.append('g');
 
-            // initialize constraints object
-            var constraints = [];
 
             var cola_d3 = cola.d3adaptor()
-                .linkDistance(25)
+                .linkDistance(60)
 
-                .symmetricDiffLinkLengths(20)
+                .symmetricDiffLinkLengths(15)
                 .avoidOverlaps(true)
                 .size([options.width, options.height]);
 
@@ -315,19 +312,6 @@ var analysis_workflow_vis = (function () {
                     .attr("y2", function (d) {
                         return d.target.y;
                     });
-                //
-                //group.attr("x", function (d) {
-                //        return d.bounds.x;
-                //    })
-                //    .attr("y", function (d) {
-                //        return d.bounds.y;
-                //    })
-                //    .attr("width", function (d) {
-                //        return d.bounds.width();
-                //    })
-                //    .attr("height", function (d) {
-                //        return d.bounds.height();
-                //    });
 
                 node
                     .attr('transform', function (d) {

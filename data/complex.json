@@ -292,43 +292,6 @@
             "scheduler_type": "reduce-from-dep",
             "step": {
               "process": {
-                "cmd": "./makehistos_data.sh {input} {output}",
-                "process_type": "string-interpolated-cmd"
-              },
-              "publisher": {
-                "publisher_type": "frompar-pub",
-                "outputmap": {
-                  "datahistos": "output"
-                }
-              },
-              "environment": {
-                "imagetag": "latest",
-                "image": "lukasheinrich/workflow-dummy",
-                "envscript": "",
-                "environment_type": "docker-encapsulated",
-                "env": {},
-                "resources": []
-              }
-            },
-            "from_stages": [
-              "preparedata"
-            ]
-          },
-          "name": "hist_data",
-          "parameters": {
-            "output": "/workdir/data.histos.root"
-          }
-        },
-        {
-          "dependencies": [
-            "preparedata"
-          ],
-          "scheduler": {
-            "outputs": "ntuple",
-            "to_input": "input",
-            "scheduler_type": "reduce-from-dep",
-            "step": {
-              "process": {
                 "cmd": "./makehistos_datadriven.sh {tight_cut} {input} {output_loose} {output_tight}",
                 "process_type": "string-interpolated-cmd"
               },
@@ -411,77 +374,7 @@
             "estimate_output": "/workdir/estimate.hist.root"
           }
         },
-        {
-          "dependencies": [
-            "hist_estimate",
-            "hist_data",
-            "hist_mc1",
-            "hist_mc2",
-            "hist_mcsignal"
-          ],
-          "scheduler": {
-            "step": {
-              "process": {
-                "cmd": "./runfit.sh {data} {signal} {back1} {back2} {back3} {fitresults} {workspace}",
-                "process_type": "string-interpolated-cmd"
-              },
-              "publisher": {
-                "publisher_type": "frompar-pub",
-                "outputmap": {
-                  "results": "fitresults",
-                  "workspace": "workspace"
-                }
-              },
-              "environment": {
-                "imagetag": "latest",
-                "image": "lukasheinrich/workflow-dummy",
-                "envscript": "",
-                "environment_type": "docker-encapsulated",
-                "env": {},
-                "resources": []
-              }
-            },
-            "scheduler_type": "zip-from-dep",
-            "zip": [
-              {
-                "zip_with": [
-                  "back1",
-                  "back2",
-                  "back3"
-                ],
-                "outputs": "estimate|mchistos",
-                "from_stages": [
-                  "hist_mc1",
-                  "hist_mc2",
-                  "hist_estimate"
-                ]
-              },
-              {
-                "zip_with": [
-                  "signal"
-                ],
-                "outputs": "mchistos",
-                "from_stages": [
-                  "hist_mcsignal"
-                ]
-              },
-              {
-                "zip_with": [
-                  "data"
-                ],
-                "outputs": "datahistos",
-                "from_stages": [
-                  "hist_data"
-                ]
-              }
-            ]
-          },
-          "name": "fit",
-          "parameters": {
-            "workspace": "/workdir/fit.workspace.root",
-            "fitresults": "/workdir/fitresults.yaml"
-          }
-        },
+
         {
           "dependencies": [
             "hist_estimate",
@@ -533,15 +426,6 @@
                 "outputs": "mchistos",
                 "from_stages": [
                   "hist_mcsignal"
-                ]
-              },
-              {
-                "zip_with": [
-                  "data"
-                ],
-                "outputs": "datahistos",
-                "from_stages": [
-                  "hist_data"
                 ]
               }
             ]
