@@ -37,7 +37,7 @@
             fill: white;
         }
 
-        rect.zip {
+        rect.init {
             stroke: #f39c12;
             fill: #f39c12;
         }
@@ -127,12 +127,10 @@
 <script src="assets/js/vis-workflow.js"></script>
 
 <script type="text/javascript">
-    d3.json('data/basic.json', function (data) {
-        analysis_workflow_vis.render('#workflow1', data, {width: 600, height: 800})
+    d3.json('data/latest/yadage_template.json', function (data) {
+        console.log(data);
+        analysis_workflow_vis.render('#workflow1', data, {width: 900, height: 800})
     });
 
-    d3.json('data/complex.json', function (data) {
-        analysis_workflow_vis.render('#workflow2', data, {width: 600, height: 800})
-    })
 </script>
 </html>

@@ -1,0 +1,410 @@
+{
+  "stages": [
+    {
+      "dependencies": {
+        "dependency_type": "jsonpath_ready",
+        "expressions": [
+          "init"
+        ]
+      },
+      "name": "prepare",
+      "scheduler": {
+        "step": {
+          "process": {
+            "cmd": "./paramfromtemplate.py inputs/template_paramcard.dat {param_card}  -i \"{{kHzz: {kHzz}, kAzz: {kAzz}, kHww: {kHww}, kAww: {kAww}}}\"",
+            "process_type": "string-interpolated-cmd"
+          },
+          "publisher": {
+            "publisher_type": "frompar-pub",
+            "outputmap": {
+              "param_card": "param_card"
+            }
+          },
+          "environment": {
+            "imagetag": "latest",
+            "image": "lukasheinrich/higgs-mc-studies",
+            "envscript": "",
+            "environment_type": "docker-encapsulated",
+            "env": {},
+            "resources": []
+          }
+        },
+        "scheduler_type": "singlestep-stage",
+        "parameters": [
+          {
+            "value": {
+              "output": "kAzz",
+              "stages": "init"
+            },
+            "key": "kAzz"
+          },
+          {
+            "value": "{workdir}/param.dat",
+            "key": "param_card"
+          },
+          {
+            "value": {
+              "output": "kHzz",
+              "stages": "init"
+            },
+            "key": "kHzz"
+          },
+          {
+            "value": {
+              "output": "kAww",
+              "stages": "init"
+            },
+            "key": "kAww"
+          },
+          {
+            "value": {
+              "output": "kHww",
+              "stages": "init"
+            },
+            "key": "kHww"
+          }
+        ]
+      }
+    },
+    {
+      "dependencies": {
+        "dependency_type": "jsonpath_ready",
+        "expressions": [
+          "prepare"
+        ]
+      },
+      "name": "grid",
+      "scheduler": {
+        "step": {
+          "process": {
+            "cmd": "./scripts/setupgrid.sh {param_card} {gridpack}",
+            "process_type": "string-interpolated-cmd"
+          },
+          "publisher": {
+            "publisher_type": "frompar-pub",
+            "outputmap": {
+              "gridpack": "gridpack"
+            }
+          },
+          "environment": {
+            "imagetag": "latest",
+            "image": "lukasheinrich/higgs-mc-studies",
+            "envscript": "",
+            "environment_type": "docker-encapsulated",
+            "env": {},
+            "resources": []
+          }
+        },
+        "scheduler_type": "singlestep-stage",
+        "parameters": [
+          {
+            "value": {
+              "output": "param_card",
+              "stages": "prepare"
+            },
+            "key": "param_card"
+          },
+          {
+            "value": "{workdir}/grid.tar.gz",
+            "key": "gridpack"
+          }
+        ]
+      }
+    },
+    {
+      "dependencies": {
+        "dependency_type": "jsonpath_ready",
+        "expressions": [
+          "grid"
+        ]
+      },
+      "name": "subchain",
+      "scheduler": {
+        "scheduler_type": "multistep-stage",
+        "scatter": {
+          "method": "zip",
+          "parameters": [
+            "seed"
+          ]
+        },
+        "parameters": [
+          {
+            "value": {
+              "output": "nevents",
+              "stages": "init",
+              "unwrap": true
+            },
+            "key": "nevents"
+          },
+          {
+            "value": {
+              "output": "gridpack",
+              "stages": "grid",
+              "unwrap": true
+            },
+            "key": "gridpack"
+          },
+          {
+            "value": {
+              "output": "seeds",
+              "stages": "init",
+              "flatten": true
+            },
+            "key": "seed"
+          }
+        ],
+        "workflow": {
+          "stages": [
+            {
+              "dependencies": {
+                "dependency_type": "jsonpath_ready",
+                "expressions": [
+                  "init"
+                ]
+              },
+              "name": "madevent",
+              "scheduler": {
+                "step": {
+                  "process": {
+                    "cmd": "./scripts/rungrid.sh {gridpack} {nevents} {seed} {lhefile}",
+                    "process_type": "string-interpolated-cmd"
+                  },
+                  "publisher": {
+                    "publisher_type": "frompar-pub",
+                    "outputmap": {
+                      "lhefile": "lhefile"
+                    }
+                  },
+                  "environment": {
+                    "imagetag": "latest",
+                    "image": "lukasheinrich/higgs-mc-studies",
+                    "envscript": "",
+                    "environment_type": "docker-encapsulated",
+                    "env": {},
+                    "resources": []
+                  }
+                },
+                "scheduler_type": "singlestep-stage",
+                "parameters": [
+                  {
+                    "value": "{workdir}/lhefile.lhe",
+                    "key": "lhefile"
+                  },
+                  {
+                    "value": {
+                      "output": "nevents",
+                      "stages": "init"
+                    },
+                    "key": "nevents"
+                  },
+                  {
+                    "value": {
+                      "output": "gridpack",
+                      "stages": "init"
+                    },
+                    "key": "gridpack"
+                  },
+                  {
+                    "value": {
+                      "output": "seed",
+                      "stages": "init"
+                    },
+                    "key": "seed"
+                  }
+                ]
+              }
+            },
+            {
+              "dependencies": {
+                "dependency_type": "jsonpath_ready",
+                "expressions": [
+                  "madevent"
+                ]
+              },
+              "name": "pythia",
+              "scheduler": {
+                "step": {
+                  "process": {
+                    "cmd": "/analysis/pythia_main/example_main {settings_file} {hepmcfile} {lhefile}",
+                    "process_type": "string-interpolated-cmd"
+                  },
+                  "publisher": {
+                    "publisher_type": "frompar-pub",
+                    "outputmap": {
+                      "hepmcfile": "hepmcfile"
+                    }
+                  },
+                  "environment": {
+                    "imagetag": "latest",
+                    "image": "lukasheinrich/higgs-mc-studies",
+                    "envscript": "",
+                    "environment_type": "docker-encapsulated",
+                    "env": {},
+                    "resources": []
+                  }
+                },
+                "scheduler_type": "singlestep-stage",
+                "parameters": [
+                  {
+                    "value": {
+                      "output": "lhefile",
+                      "stages": "madevent"
+                    },
+                    "key": "lhefile"
+                  },
+                  {
+                    "value": "{workdir}/outputfile.hepmc",
+                    "key": "hepmcfile"
+                  },
+                  {
+                    "value": "/analysis/mainPythiaMLM.cmnd",
+                    "key": "settings_file"
+                  }
+                ]
+              }
+            },
+            {
+              "dependencies": {
+                "dependency_type": "jsonpath_ready",
+                "expressions": [
+                  "pythia"
+                ]
+              },
+              "name": "delphes",
+              "scheduler": {
+                "step": {
+                  "process": {
+                    "cmd": "DelphesHepMC {detector_card} {outputfile} {inputfile}",
+                    "process_type": "string-interpolated-cmd"
+                  },
+                  "publisher": {
+                    "publisher_type": "frompar-pub",
+                    "outputmap": {
+                      "delphesoutput": "outputfile"
+                    }
+                  },
+                  "environment": {
+                    "imagetag": "latest",
+                    "image": "lukasheinrich/higgs-mc-studies",
+                    "envscript": "",
+                    "environment_type": "docker-encapsulated",
+                    "env": {},
+                    "resources": []
+                  }
+                },
+                "scheduler_type": "singlestep-stage",
+                "parameters": [
+                  {
+                    "value": "/analysis/template_cards/modified_delphes_card_ATLAS.tcl",
+                    "key": "detector_card"
+                  },
+                  {
+                    "value": "{workdir}/outputfile.root",
+                    "key": "outputfile"
+                  },
+                  {
+                    "value": {
+                      "output": "hepmcfile",
+                      "stages": "pythia"
+                    },
+                    "key": "inputfile"
+                  }
+                ]
+              }
+            },
+            {
+              "dependencies": {
+                "dependency_type": "jsonpath_ready",
+                "expressions": [
+                  "delphes"
+                ]
+              },
+              "name": "analysis",
+              "scheduler": {
+                "step": {
+                  "process": {
+                    "cmd": "./scripts/runpost.sh {fromdelphes} {analysis_output}",
+                    "process_type": "string-interpolated-cmd"
+                  },
+                  "publisher": {
+                    "publisher_type": "frompar-pub",
+                    "outputmap": {
+                      "analysis_output": "analysis_output"
+                    }
+                  },
+                  "environment": {
+                    "imagetag": "latest",
+                    "image": "lukasheinrich/higgs-mc-studies",
+                    "envscript": "",
+                    "environment_type": "docker-encapsulated",
+                    "env": {},
+                    "resources": []
+                  }
+                },
+                "scheduler_type": "singlestep-stage",
+                "parameters": [
+                  {
+                    "value": {
+                      "output": "delphesoutput",
+                      "stages": "delphes"
+                    },
+                    "key": "fromdelphes"
+                  },
+                  {
+                    "value": "{workdir}/anaout.root",
+                    "key": "analysis_output"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "dependencies": {
+        "dependency_type": "jsonpath_ready",
+        "expressions": [
+          "subchain"
+        ]
+      },
+      "name": "rootmerge",
+      "scheduler": {
+        "step": {
+          "process": {
+            "cmd": "hadd {mergedfile} {inputfiles}",
+            "process_type": "string-interpolated-cmd"
+          },
+          "publisher": {
+            "publisher_type": "frompar-pub",
+            "outputmap": {
+              "mergedfile": "mergedfile"
+            }
+          },
+          "environment": {
+            "imagetag": "latest",
+            "image": "lukasheinrich/higgs-mc-studies",
+            "envscript": "",
+            "environment_type": "docker-encapsulated",
+            "env": {},
+            "resources": []
+          }
+        },
+        "scheduler_type": "singlestep-stage",
+        "parameters": [
+          {
+            "value": "{workdir}/anamerged.root",
+            "key": "mergedfile"
+          },
+          {
+            "value": {
+              "output": "analysis_output",
+              "stages": "subchain.[*].analysis"
+            },
+            "key": "inputfiles"
+          }
+        ]
+      }
+    }
+  ]
+}

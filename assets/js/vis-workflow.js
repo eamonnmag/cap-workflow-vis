@@ -1,126 +1,202 @@
 /**
- * Created by eamonnmaguire on 05/04/2016.
+ * Provides the mechanism to visualize yandage workflows
+ * using an interactive graph layout.
+ * @author Eamonn Maguire <eamonnmag@gmail.com>
  */
-
 var analysis_workflow_vis = (function () {
 
     var svg;
-    var options = {show_zip: true};
+    var cola_d3;
+    var graphs = [];
+    var dependency_map = {};
+    var groups = {};
+    var graph = {'nodes': [], 'links': [], 'groups': []};
+    var node_count = 0, stage_count = 0;
+    var color = d3.scale.ordinal().range(["#f6f7f6"]);
+    var last_nodes = {
+        'output': {'dependencies': null, 'node': null},
+        'process': {'dependencies': null, 'node': null}
+    };
 
-    function process_data(data) {
 
-        var graphs = [];
+    /**
+     *
+     * @param id
+     * @param stage
+     * @param type
+     * @param name
+     * @param value
+     */
+    function add_node(id, stage, type, name, value) {
+        var _node = {
+            'id': id,
+            'type': type,
+            'name': name,
+            'value': value
+        };
 
-        data.workflows.forEach(function (workflow) {
-            var dependency_map = {};
-            var groups = {};
-            var graph = {'nodes': [], 'links': [], 'groups': []};
+        graph.nodes.push(_node);
 
-            var node_count = 0;
-            workflow.stages.forEach(function (stage) {
+        if (!(stage in dependency_map[stage_count])) {
+            dependency_map[stage_count][stage] = {'id': id, 'outputs': {}};
+        }
 
-                // push main process
-                graph.nodes.push({'id': node_count, 'type': 'process', 'name': stage.name, 'info': stage});
-                dependency_map[stage.name] = {'id': node_count, 'outputs': {}};
-                groups[stage.name] = {"leaves": []};
+        if (type in last_nodes) {
+            last_nodes[type]['node'] = _node;
+            last_nodes[type]['dependencies'] = dependency_map[stage_count][stage];
+        }
 
-                groups[stage.name].leaves.push(node_count);
+        groups[stage_count].leaves.push(id);
 
-                node_count += 1;
+        if (dependency_map[stage_count][stage]) {
+            graph.links.push({'source': dependency_map[stage_count][stage].id, 'target': node_count});
+            dependency_map[stage_count][stage].outputs[name] = {
+                'id': id,
+                'name': value
+            };
+        }
+    }
 
-                var scheduler = stage.scheduler;
+    /**
+     *
+     * @param stages
+     * @param init_node
+     */
+    function process_stages(stages, init_node) {
+        dependency_map[stage_count] = {};
+
+        if (!(stage_count in groups)) {
+            groups[stage_count] = {'leaves': []};
+        }
+
+
+        if (init_node) {
+            dependency_map[stage_count]['init'] = init_node.dependencies;
+            init_node.node.name = 'init';
+            init_node.node.type = 'init';
+            groups[stage_count].leaves.push(init_node.node.id);
+        } else {
+            add_node(node_count, 'init', 'init', 'init', {});
+            node_count += 1;
+        }
+
+
+        stages.forEach(function (stage) {
+
+            add_node(node_count, stage.name, 'process', stage.name, stage);
+            node_count += 1;
+
+            var scheduler = stage.scheduler;
+
+            if ('step' in scheduler) {
                 var step = scheduler.step;
 
                 // push outputs and link them to the process.
-                for (var output_key in step.publisher.outputmap) {
-
-                    var value = step.publisher.outputmap[output_key];
-                    graph.nodes.push({
-                        'id': node_count,
-                        'type': 'output',
-                        'name': value === 'output' ? output_key : value,
-                        'value': output_key
-                    });
-
-                    graph.links.push({'source': dependency_map[stage.name].id, 'target': node_count});
-                    dependency_map[stage.name].outputs[output_key] = {
-                        'id': node_count,
-                        'name': step.publisher.outputmap[output_key]
-                    };
-
-                    groups[stage.name].leaves.push(node_count);
-
-                    node_count += 1;
-                }
-
-                if ('outputs' in stage.scheduler) {
-                    stage.dependencies.forEach(function (dependency) {
-                        if (dependency in dependency_map) {
-                            var output_node = dependency_map[dependency].outputs[stage.scheduler.outputs];
-                            graph.links.push({'source': output_node.id, 'target': dependency_map[stage.name].id})
-                        }
-                    });
-                }
-
-                if (scheduler.scheduler_type == 'zip-from-dep') {
-                    if ('zip' in stage.scheduler) {
-                        for (var zip_directive_idx in stage.scheduler.zip) {
-                            var zip_directive = stage.scheduler.zip[zip_directive_idx];
-
-                            if (options.show_zip) {
-                                graph.nodes.push({
-                                    'id': node_count,
-                                    'type': 'zip',
-                                    'name': 'Zip',
-                                    'value': output_key,
-                                    'info': zip_directive
-                                });
-                            }
-
-                            var output_nodes = zip_directive.outputs.split("|");
-
-                            zip_directive.from_stages.forEach(function (dependency) {
-                                output_nodes.forEach(function (output_item) {
-                                    if (dependency in dependency_map) {
-                                        var output_node = dependency_map[dependency].outputs[output_item];
-                                        if (output_node) {
-                                            if (options.show_zip) {
-                                                graph.links.push({'source': output_node.id, 'target': node_count});
-                                                groups[stage.name].leaves.push(node_count);
-                                                graph.links.push({
-                                                    'source': node_count,
-                                                    'target': dependency_map[stage.name].id
-                                                })
-                                            } else {
-                                                graph.links.push({
-                                                    'source': output_node.id,
-                                                    'target': dependency_map[stage.name].id
-                                                })
-                                            }
-                                        }
-                                    }
-                                });
-
-                            });
-                            if (options.show_zip) {
-                                node_count += 1;
-                            }
-                        }
+                if ('publisher' in step) {
+                    for (var output_key in step.publisher.outputmap) {
+                        add_node(node_count, stage.name, 'output', output_key);
+                        node_count += 1;
                     }
                 }
-
-
-            });
-
-            for (var group_key in groups) {
-                graph.groups.push(groups[group_key]);
             }
 
-            graphs.push(graph);
+            if ('parameters' in stage.scheduler) {
+                stage.scheduler.parameters.forEach(function (parameter) {
+                    var _parameter_value = parameter.value;
+                    var _stage = _parameter_value.stages;
+
+                    if (_stage === 'init') {
+                        if (!(_parameter_value.output in dependency_map[stage_count]['init'].outputs)) {
+                            add_node(node_count, 'init', 'output',
+                                _parameter_value.output, _parameter_value.output);
+
+                            graph.links.push({
+                                'source': node_count,
+                                'target': dependency_map[stage_count][stage.name].id
+                            });
+
+                            node_count += 1;
+                        }
+                    }
+
+                    else if (_stage in dependency_map[stage_count]) {
+                        var output_node = dependency_map[stage_count][_stage]
+                            .outputs[_parameter_value.output];
+
+                        if (output_node) {
+                            graph.links.push({
+                                'source': output_node.id,
+                                'target': dependency_map[stage_count][stage.name].id
+                            })
+                        }
+                    } else {
+                        // we have a sub chain
+                        if (_stage && _stage.indexOf("[*]") !== -1) {
+
+                            var last_dependency = dependency_map[stage_count + 1];
+
+                            for (var dependency in last_dependency) {
+                                if (last_dependency[dependency].outputs
+                                    && _parameter_value.output in last_dependency[dependency].outputs) {
+                                    var _last_output_id = last_dependency[dependency]
+                                        .outputs[_parameter_value.output].id;
+                                }
+                            }
+
+                            if (_last_output_id !== undefined)
+                                graph.links.push({
+                                    'source': _last_output_id,
+                                    'target': dependency_map[stage_count][stage.name].id
+                                })
+                        }
+                    }
+                });
+            }
+
+            if ('workflow' in scheduler) {
+                stage_count += 1;
+                process_stages(scheduler.workflow.stages, last_nodes['process']);
+                stage_count -= 1;
+            }
+
+
         });
+
+        graph.groups = [];
+        for (var group_idx in groups) {
+            var _filtered_leaves = groups[group_idx].leaves.filter(function (d) {
+                return d != undefined;
+            });
+            var _group_def = {'leaves': _filtered_leaves, 'groups': [], 'color': 'white'};
+
+            if (group_idx == 0) {
+                _group_def['groups'].push(1);
+            } else {
+                _group_def['color'] = '#f6f7f6';
+            }
+            graph.groups.push(_group_def);
+        }
+
+        graphs.push(graph);
+    }
+
+    /**
+     *
+     * @param data
+     * @returns {Array}
+     */
+    function process_data(data) {
+        process_stages(data.stages);
         return graphs;
     }
 
+    /**
+     *
+     * @param text
+     * @param fontSize
+     * @param fontFace
+     * @returns {Number}
+     */
     function getTextWidth(text, fontSize, fontFace) {
         var a = document.createElement('canvas');
         var b = a.getContext('2d');
@@ -129,6 +205,14 @@ var analysis_workflow_vis = (function () {
     }
 
     return {
+        /**
+         * Renders a workflow visualization given a data object
+         * conforming to the yandage schema
+         * @param placement - id (#my-div) or class (.my-div) for where
+         * to position the visualization
+         * @param data JSON conforming to the yandage schema
+         * @param options - dictionary with width and height as keys.
+         */
         render: function (placement, data, options) {
 
             var tip = d3.tip().attr('class', 'd3-tip')
@@ -138,22 +222,17 @@ var analysis_workflow_vis = (function () {
                     }
 
                     var html;
-                    if (d.type === 'zip') {
-                        html = '<p>From stages</p><ul>';
-                        d.info.from_stages.forEach(function (d) {
-                            html += '<li>' + d + '</li>';
-                        });
-                        html += '</ul>';
 
-                    } else {
-
+                    if (d.info && d.info.scheduler.step) {
                         var cmd = d.info.scheduler.step.process.cmd;
-                        for(var parameter_type in d.info.parameters) {
-                            cmd = cmd.replace('{' + parameter_type+ '}', d.info.parameters[parameter_type]);
+                        for (var parameter_type in d.info.parameters) {
+                            cmd = cmd.replace('{' + parameter_type + '}',
+                                d.info.parameters[parameter_type]);
                         }
-
-                        html = '<span>' + d.name + '</span><br/>';
                     }
+
+                    html = '<span>' + d.name + '</span><br/>';
+
                     return html;
                 });
 
@@ -180,32 +259,40 @@ var analysis_workflow_vis = (function () {
 
             var vis = svg.append('g');
 
-
-            var cola_d3 = cola.d3adaptor()
-                .linkDistance(60)
-
-                .symmetricDiffLinkLengths(15)
-                .avoidOverlaps(true)
-                .size([options.width, options.height]);
-
             var graphs = process_data(data);
             var graph = graphs[0];
 
             graph.nodes.forEach(function (v) {
-                v.width = (v.type === 'output' ? 90 : v.type === 'zip' ? 70 : 150);
-                v.height = (v.type === 'output' ? 70 : v.type === 'zip' ? 70 : 80);
+                v.width = (v.type === 'output' ? 90 : v.type === 'init' ? 70 : 150);
+                v.height = (v.type === 'output' ? 70 : v.type === 'init' ? 70 : 80);
             });
+
 
             graph.groups.forEach(function (g) {
-                g.padding = 0.01;
+                g.padding = 0.001;
             });
 
-            cola_d3
+            cola_d3 = cola.d3adaptor()
+                .linkDistance(100)
+                .size([options.width, options.height])
                 .nodes(graph.nodes)
                 .links(graph.links)
-                .flowLayout("y", 40)
-                .constraints([{"axis":"x", "left":1, "right":1, "gap":50}])
-                .start(50, 25, 50);
+                .groups(graph.groups)
+                .flowLayout("y", 100)
+                .avoidOverlaps(true)
+                .start(25, 10, 100);
+
+            var group = vis.selectAll(".group")
+                .data(graph.groups)
+                .enter().append("rect")
+                .attr("rx", 8).attr("ry", 8)
+                .attr("class", 'group')
+                .style("stroke", '#2c3e50')
+                .style("stroke-dasharray", 2)
+                .style("fill", function (d) {
+                    return d.color;
+                })
+                .call(cola_d3.drag);
 
 
             var link = vis.selectAll(".link")
@@ -236,7 +323,7 @@ var analysis_workflow_vis = (function () {
                     return d.type;
                 })
                 .attr('rx', function (d) {
-                    return d.type == 'process' ? 15 : d.type == 'zip' ? 30 : 2;
+                    return d.type == 'process' ? 15 : d.type == 'init' ? 30 : 2;
                 })
                 .attr("width", function (d) {
 
@@ -304,6 +391,19 @@ var analysis_workflow_vis = (function () {
                         return d.target.y;
                     });
 
+                group.attr("x", function (d) {
+                        return d.bounds.x;
+                    })
+                    .attr("y", function (d) {
+                        return d.bounds.y;
+                    })
+                    .attr("width", function (d) {
+                        return d.bounds.width();
+                    })
+                    .attr("height", function (d) {
+                        return d.bounds.height();
+                    });
+
                 node
                     .attr('transform', function (d) {
                         return 'translate(' + (d.x - d.width / 2 + pad) + ',' + (d.y - d.height / 2 + pad) + ')'
@@ -313,4 +413,5 @@ var analysis_workflow_vis = (function () {
             });
         }
     }
-})();
+})
+();
