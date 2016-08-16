@@ -1,0 +1,211 @@
+{
+  "stages": [
+    {
+      "dependencies": {
+        "dependency_type": "jsonpath_ready",
+        "expressions": []
+      },
+      "name": "prepare",
+      "scheduler": {
+        "step": {
+          "process": {
+            "cmd": "./paramfromyaml.py --madgraph -f {inputpars} {model} {parametercard}",
+            "process_type": "string-interpolated-cmd"
+          },
+          "publisher": {
+            "publisher_type": "frompar-pub",
+            "outputmap": {
+              "parcard": "parametercard"
+            }
+          },
+          "environment": {
+            "imagetag": "latest",
+            "image": "lukasheinrich/recast_phenoexample",
+            "envscript": "",
+            "environment_type": "docker-encapsulated",
+            "env": {},
+            "resources": []
+          }
+        },
+        "scheduler_type": "singlestep-stage",
+        "parameters": [
+          {
+            "value": "sm",
+            "key": "model"
+          },
+          {
+            "value": "defaultparam.yml",
+            "key": "inputpars"
+          },
+          {
+            "value": "{workdir}/param.dat",
+            "key": "parametercard"
+          }
+        ]
+      }
+    },
+    {
+      "dependencies": {
+        "dependency_type": "jsonpath_ready",
+        "expressions": [
+          "prepare",
+          "init"
+        ]
+      },
+      "name": "madgraph",
+      "scheduler": {
+        "step": {
+          "process": {
+            "cmd": "./steermadgraph.py proc.dat default_run.dat {paramcard} {outputlhe} -e {events}",
+            "process_type": "string-interpolated-cmd"
+          },
+          "publisher": {
+            "publisher_type": "frompar-pub",
+            "outputmap": {
+              "lhefile": "outputlhe"
+            }
+          },
+          "environment": {
+            "imagetag": "latest",
+            "image": "lukasheinrich/recast_phenoexample",
+            "envscript": "",
+            "environment_type": "docker-encapsulated",
+            "env": {},
+            "resources": []
+          }
+        },
+        "scheduler_type": "singlestep-stage",
+        "parameters": [
+          {
+            "value": {
+              "output": "parcard",
+              "stages": "prepare",
+              "unwrap": true
+            },
+            "key": "paramcard"
+          },
+          {
+            "value": "{workdir}/output.lhe",
+            "key": "outputlhe"
+          },
+          {
+            "value": {
+              "output": "nevents",
+              "stages": "init",
+              "unwrap": true
+            },
+            "key": "events"
+          }
+        ]
+      }
+    },
+    {
+      "dependencies": {
+        "dependency_type": "jsonpath_ready",
+        "expressions": [
+          "madgraph"
+        ]
+      },
+      "name": "pythia",
+      "scheduler": {
+        "step": {
+          "process": {
+            "cmd": "./steerpythia.py {lhefile} {outputhepmc} -e {events}",
+            "process_type": "string-interpolated-cmd"
+          },
+          "publisher": {
+            "publisher_type": "frompar-pub",
+            "outputmap": {
+              "hepmcfile": "outputhepmc"
+            }
+          },
+          "environment": {
+            "imagetag": "latest",
+            "image": "lukasheinrich/recast_phenoexample",
+            "envscript": "",
+            "environment_type": "docker-encapsulated",
+            "env": {},
+            "resources": []
+          }
+        },
+        "scheduler_type": "singlestep-stage",
+        "parameters": [
+          {
+            "value": {
+              "output": "lhefile",
+              "stages": "madgraph",
+              "unwrap": true
+            },
+            "key": "lhefile"
+          },
+          {
+            "value": "{workdir}/output.hepmc",
+            "key": "outputhepmc"
+          },
+          {
+            "value": {
+              "output": "nevents",
+              "stages": "init",
+              "unwrap": true
+            },
+            "key": "events"
+          }
+        ]
+      }
+    },
+    {
+      "dependencies": {
+        "dependency_type": "jsonpath_ready",
+        "expressions": [
+          "pythia"
+        ]
+      },
+      "name": "delphes",
+      "scheduler": {
+        "step": {
+          "process": {
+            "cmd": "DelphesHepMC  {delphes_card} {outputroot} {inputhepmc} && root2lhco {outputroot} {outputlhco}",
+            "process_type": "string-interpolated-cmd"
+          },
+          "publisher": {
+            "publisher_type": "frompar-pub",
+            "outputmap": {
+              "lhcofile": "outputlhco",
+              "rootfile": "outputroot"
+            }
+          },
+          "environment": {
+            "imagetag": "latest",
+            "image": "lukasheinrich/root-delphes",
+            "envscript": "",
+            "environment_type": "docker-encapsulated",
+            "env": {},
+            "resources": []
+          }
+        },
+        "scheduler_type": "singlestep-stage",
+        "parameters": [
+          {
+            "value": "{workdir}/output.lhco",
+            "key": "outputlhco"
+          },
+          {
+            "value": "delphes/cards/delphes_card_ATLAS.tcl",
+            "key": "delphes_card"
+          },
+          {
+            "value": "{workdir}/output.root",
+            "key": "outputroot"
+          },
+          {
+            "value": {
+              "output": "hepmcfile",
+              "stages": "pythia"
+            },
+            "key": "inputhepmc"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,1 +1,2184 @@
-{"rules": [], "applied": [{"type": "offset", "id": "d0c8d385-d6b1-4f7f-972b-f98e55e89bac", "rule": {"info": "", "step": {"attributes": {"kAzz": 0.1, "nevents": 100, "seeds": [1, 2], "kAww": 0.1, "kHww": 0.1, "kHzz": 0.1}, "prepublished": {"kAzz": 0.1, "nevents": 100, "seeds": [1, 2], "kAww": 0.1, "kHww": 0.1, "kHzz": 0.1}, "type": "initstep", "name": "init", "inputs": []}, "dependencies": null, "name": "init", "context": {}, "type": "initStage"}, "offset": ""}, {"type": "offset", "id": "7ada2e01-44d8-48f7-a12d-e478656da4a5", "rule": {"info": {"step": {"process": {"cmd": "./paramfromtemplate.py inputs/template_paramcard.dat {param_card}  -i \"{{kHzz: {kHzz}, kAzz: {kAzz}, kHww: {kHww}, kAww: {kAww}}}\"", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"param_card": "param_card"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": {"output": "kAzz", "stages": "init"}, "key": "kAzz"}, {"value": "{workdir}/param.dat", "key": "param_card"}, {"value": {"output": "kHzz", "stages": "init"}, "key": "kHzz"}, {"value": {"output": "kAww", "stages": "init"}, "key": "kAww"}, {"value": {"output": "kHww", "stages": "init"}, "key": "kHww"}]}, "dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["init"]}, "type": "jsonStage", "name": "prepare", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw"], "readonly": [], "nametag": "hw"}}, "offset": ""}, {"type": "offset", "id": "27e9be9d-1a82-4760-9fe6-3cadc5cf95ee", "rule": {"info": {"step": {"process": {"cmd": "./scripts/setupgrid.sh {param_card} {gridpack}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"gridpack": "gridpack"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": {"output": "param_card", "stages": "prepare"}, "key": "param_card"}, {"value": "{workdir}/grid.tar.gz", "key": "gridpack"}]}, "dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["prepare"]}, "type": "jsonStage", "name": "grid", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw"], "readonly": [], "nametag": "hw"}}, "offset": ""}, {"type": "offset", "id": "7e33c3af-6e2e-4869-afca-6d9f61c7cda0", "rule": {"info": {"scheduler_type": "multistep-stage", "scatter": {"method": "zip", "parameters": ["seed"]}, "parameters": [{"value": {"output": "nevents", "stages": "init", "unwrap": true}, "key": "nevents"}, {"value": {"output": "gridpack", "stages": "grid", "unwrap": true}, "key": "gridpack"}, {"value": {"output": "seeds", "stages": "init", "flatten": true}, "key": "seed"}], "workflow": {"stages": [{"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["init"]}, "name": "madevent", "scheduler": {"step": {"process": {"cmd": "./scripts/rungrid.sh {gridpack} {nevents} {seed} {lhefile}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"lhefile": "lhefile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": "{workdir}/lhefile.lhe", "key": "lhefile"}, {"value": {"output": "nevents", "stages": "init"}, "key": "nevents"}, {"value": {"output": "gridpack", "stages": "init"}, "key": "gridpack"}, {"value": {"output": "seed", "stages": "init"}, "key": "seed"}]}}, {"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["madevent"]}, "name": "pythia", "scheduler": {"step": {"process": {"cmd": "/analysis/pythia_main/example_main {settings_file} {hepmcfile} {lhefile}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"hepmcfile": "hepmcfile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": {"output": "lhefile", "stages": "madevent"}, "key": "lhefile"}, {"value": "{workdir}/outputfile.hepmc", "key": "hepmcfile"}, {"value": "/analysis/mainPythiaMLM.cmnd", "key": "settings_file"}]}}, {"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["pythia"]}, "name": "delphes", "scheduler": {"step": {"process": {"cmd": "DelphesHepMC {detector_card} {outputfile} {inputfile}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"delphesoutput": "outputfile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": "/analysis/template_cards/modified_delphes_card_ATLAS.tcl", "key": "detector_card"}, {"value": "{workdir}/outputfile.root", "key": "outputfile"}, {"value": {"output": "hepmcfile", "stages": "pythia"}, "key": "inputfile"}]}}, {"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["delphes"]}, "name": "analysis", "scheduler": {"step": {"process": {"cmd": "./scripts/runpost.sh {fromdelphes} {analysis_output}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"analysis_output": "analysis_output"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": {"output": "delphesoutput", "stages": "delphes"}, "key": "fromdelphes"}, {"value": "{workdir}/anaout.root", "key": "analysis_output"}]}}]}}, "dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["grid"]}, "type": "jsonStage", "name": "subchain", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw"], "readonly": [], "nametag": "hw"}}, "offset": ""}, {"type": "offset", "id": "68254d8a-dd1a-4dc1-8fa4-dab33dc6a034", "rule": {"info": "", "step": {"attributes": {"nevents": 100, "gridpack": "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz", "seed": 2}, "prepublished": {"nevents": 100, "gridpack": "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz", "seed": 2}, "type": "initstep", "name": "init subchain_1", "inputs": [{"stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7", "pointer_path": "/nevents"}, {"stepid": "6f5068d9-f081-421b-a7a5-3c85d52f05c1", "pointer_path": "/gridpack"}, {"stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7", "pointer_path": "/seeds/1"}]}, "dependencies": null, "name": "init", "context": {}, "type": "initStage"}, "offset": "/subchain/1"}, {"type": "offset", "id": "91d826f9-db88-49d3-ba74-8d61e6938651", "rule": {"info": {"step": {"process": {"cmd": "./scripts/rungrid.sh {gridpack} {nevents} {seed} {lhefile}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"lhefile": "lhefile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": "{workdir}/lhefile.lhe", "key": "lhefile"}, {"value": {"output": "nevents", "stages": "init"}, "key": "nevents"}, {"value": {"output": "gridpack", "stages": "init"}, "key": "gridpack"}, {"value": {"output": "seed", "stages": "init"}, "key": "seed"}]}, "dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["init"]}, "type": "jsonStage", "name": "madevent", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_1"], "readonly": ["/Users/lukas/Code/yadagedev/testing/hw"], "nametag": "subchain_1"}}, "offset": "/subchain/1"}, {"type": "offset", "id": "bfd97619-2b9a-4e66-a2a8-7df7051530b2", "rule": {"info": "", "step": {"attributes": {"nevents": 100, "gridpack": "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz", "seed": 1}, "prepublished": {"nevents": 100, "gridpack": "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz", "seed": 1}, "type": "initstep", "name": "init subchain_0", "inputs": [{"stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7", "pointer_path": "/nevents"}, {"stepid": "6f5068d9-f081-421b-a7a5-3c85d52f05c1", "pointer_path": "/gridpack"}, {"stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7", "pointer_path": "/seeds/0"}]}, "dependencies": null, "name": "init", "context": {}, "type": "initStage"}, "offset": "/subchain/0"}, {"type": "offset", "id": "f38b27d3-f38c-466f-87de-3437d161e517", "rule": {"info": {"step": {"process": {"cmd": "./scripts/rungrid.sh {gridpack} {nevents} {seed} {lhefile}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"lhefile": "lhefile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": "{workdir}/lhefile.lhe", "key": "lhefile"}, {"value": {"output": "nevents", "stages": "init"}, "key": "nevents"}, {"value": {"output": "gridpack", "stages": "init"}, "key": "gridpack"}, {"value": {"output": "seed", "stages": "init"}, "key": "seed"}]}, "dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["init"]}, "type": "jsonStage", "name": "madevent", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_0"], "readonly": ["/Users/lukas/Code/yadagedev/testing/hw"], "nametag": "subchain_0"}}, "offset": "/subchain/0"}, {"type": "offset", "id": "9050daf2-2966-48eb-b2db-c9162b54b0f5", "rule": {"info": {"step": {"process": {"cmd": "/analysis/pythia_main/example_main {settings_file} {hepmcfile} {lhefile}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"hepmcfile": "hepmcfile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": {"output": "lhefile", "stages": "madevent"}, "key": "lhefile"}, {"value": "{workdir}/outputfile.hepmc", "key": "hepmcfile"}, {"value": "/analysis/mainPythiaMLM.cmnd", "key": "settings_file"}]}, "dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["madevent"]}, "type": "jsonStage", "name": "pythia", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_1"], "readonly": ["/Users/lukas/Code/yadagedev/testing/hw"], "nametag": "subchain_1"}}, "offset": "/subchain/1"}, {"type": "offset", "id": "d6faf1b1-ed91-4ba6-a5a4-3f8e56a8715e", "rule": {"info": {"step": {"process": {"cmd": "/analysis/pythia_main/example_main {settings_file} {hepmcfile} {lhefile}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"hepmcfile": "hepmcfile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": {"output": "lhefile", "stages": "madevent"}, "key": "lhefile"}, {"value": "{workdir}/outputfile.hepmc", "key": "hepmcfile"}, {"value": "/analysis/mainPythiaMLM.cmnd", "key": "settings_file"}]}, "dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["madevent"]}, "type": "jsonStage", "name": "pythia", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_0"], "readonly": ["/Users/lukas/Code/yadagedev/testing/hw"], "nametag": "subchain_0"}}, "offset": "/subchain/0"}, {"type": "offset", "id": "5dcdb920-8b0b-4605-aed0-64dd92af7868", "rule": {"info": {"step": {"process": {"cmd": "DelphesHepMC {detector_card} {outputfile} {inputfile}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"delphesoutput": "outputfile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": "/analysis/template_cards/modified_delphes_card_ATLAS.tcl", "key": "detector_card"}, {"value": "{workdir}/outputfile.root", "key": "outputfile"}, {"value": {"output": "hepmcfile", "stages": "pythia"}, "key": "inputfile"}]}, "dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["pythia"]}, "type": "jsonStage", "name": "delphes", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_1"], "readonly": ["/Users/lukas/Code/yadagedev/testing/hw"], "nametag": "subchain_1"}}, "offset": "/subchain/1"}, {"type": "offset", "id": "9f040da6-2c74-4c3e-be47-a89acb220948", "rule": {"info": {"step": {"process": {"cmd": "DelphesHepMC {detector_card} {outputfile} {inputfile}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"delphesoutput": "outputfile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": "/analysis/template_cards/modified_delphes_card_ATLAS.tcl", "key": "detector_card"}, {"value": "{workdir}/outputfile.root", "key": "outputfile"}, {"value": {"output": "hepmcfile", "stages": "pythia"}, "key": "inputfile"}]}, "dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["pythia"]}, "type": "jsonStage", "name": "delphes", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_0"], "readonly": ["/Users/lukas/Code/yadagedev/testing/hw"], "nametag": "subchain_0"}}, "offset": "/subchain/0"}, {"type": "offset", "id": "329c3809-3038-4455-a378-6ebfc8082b1a", "rule": {"info": {"step": {"process": {"cmd": "./scripts/runpost.sh {fromdelphes} {analysis_output}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"analysis_output": "analysis_output"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": {"output": "delphesoutput", "stages": "delphes"}, "key": "fromdelphes"}, {"value": "{workdir}/anaout.root", "key": "analysis_output"}]}, "dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["delphes"]}, "type": "jsonStage", "name": "analysis", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_1"], "readonly": ["/Users/lukas/Code/yadagedev/testing/hw"], "nametag": "subchain_1"}}, "offset": "/subchain/1"}, {"type": "offset", "id": "db1f1d01-dadb-437a-aa11-6eb5f024f8e7", "rule": {"info": {"step": {"process": {"cmd": "./scripts/runpost.sh {fromdelphes} {analysis_output}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"analysis_output": "analysis_output"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": {"output": "delphesoutput", "stages": "delphes"}, "key": "fromdelphes"}, {"value": "{workdir}/anaout.root", "key": "analysis_output"}]}, "dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["delphes"]}, "type": "jsonStage", "name": "analysis", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_0"], "readonly": ["/Users/lukas/Code/yadagedev/testing/hw"], "nametag": "subchain_0"}}, "offset": "/subchain/0"}, {"type": "offset", "id": "1aa1a7ce-b968-4230-973f-223da0484ca6", "rule": {"info": {"step": {"process": {"cmd": "hadd {mergedfile} {inputfiles}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"mergedfile": "mergedfile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": "{workdir}/anamerged.root", "key": "mergedfile"}, {"value": {"output": "analysis_output", "stages": "subchain.[*].analysis"}, "key": "inputfiles"}]}, "dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["subchain"]}, "type": "jsonStage", "name": "rootmerge", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw"], "readonly": [], "nametag": "hw"}}, "offset": ""}], "dag": {"nodes": [{"task": {"inputs": [{"stepid": "5cedba8d-19d3-439a-9577-a8f3d1f11434", "pointer_path": "/delphesoutput"}], "name": "analysis", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_1/analysis"], "readonly": ["/Users/lukas/Code/yadagedev/testing/hw", "/Users/lukas/Code/yadagedev/testing/hw/subchain_1"], "nametag": "analysis"}, "attributes": {"fromdelphes": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_1/delphes/outputfile.root"], "analysis_output": "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/analysis/anaout.root"}, "prepublished": {"analysis_output": "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/analysis/anaout.root"}, "type": "yadagestep", "spec": {"process": {"cmd": "./scripts/runpost.sh {fromdelphes} {analysis_output}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"analysis_output": "analysis_output"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}}, "name": "analysis", "state": "SUCCESS", "proxy": {"type": "PacktivityProxyBase", "proxydetails": null}, "timestamps": {"defined": 1470991889.893889, "ready by": 1470991890.332817, "submit": 1470991890.311218}, "id": "ac8b1293-6992-431d-bdf4-7f7be59a6e10"}, {"task": {"inputs": [{"stepid": "3fa5bc45-db83-4999-b1ec-3fb4ee53ab77", "pointer_path": "/analysis_output"}, {"stepid": "ac8b1293-6992-431d-bdf4-7f7be59a6e10", "pointer_path": "/analysis_output"}], "name": "rootmerge", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw/rootmerge"], "readonly": ["/Users/lukas/Code/yadagedev/testing/hw"], "nametag": "rootmerge"}, "attributes": {"mergedfile": "/Users/lukas/Code/yadagedev/testing/hw/rootmerge/anamerged.root", "inputfiles": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_0/analysis/anaout.root", "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/analysis/anaout.root"]}, "prepublished": {"mergedfile": "/Users/lukas/Code/yadagedev/testing/hw/rootmerge/anamerged.root"}, "type": "yadagestep", "spec": {"process": {"cmd": "hadd {mergedfile} {inputfiles}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"mergedfile": "mergedfile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}}, "name": "rootmerge", "state": "SUCCESS", "proxy": {"type": "PacktivityProxyBase", "proxydetails": null}, "timestamps": {"defined": 1470991890.017548, "ready by": 1470991890.361839, "submit": 1470991890.337919}, "id": "d25fb13d-aebd-446c-aed8-703ba4eb0d39"}, {"task": {"inputs": [{"stepid": "c470372d-046d-4456-9a4c-e31d30d1ed19", "pointer_path": "/hepmcfile"}], "name": "delphes", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_1/delphes"], "readonly": ["/Users/lukas/Code/yadagedev/testing/hw", "/Users/lukas/Code/yadagedev/testing/hw/subchain_1"], "nametag": "delphes"}, "attributes": {"detector_card": "/analysis/template_cards/modified_delphes_card_ATLAS.tcl", "outputfile": "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/delphes/outputfile.root", "inputfile": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_1/pythia/outputfile.hepmc"]}, "prepublished": {"delphesoutput": "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/delphes/outputfile.root"}, "type": "yadagestep", "spec": {"process": {"cmd": "DelphesHepMC {detector_card} {outputfile} {inputfile}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"delphesoutput": "outputfile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}}, "name": "delphes", "state": "SUCCESS", "proxy": {"type": "PacktivityProxyBase", "proxydetails": null}, "timestamps": {"defined": 1470991889.776112, "ready by": 1470991890.301248, "submit": 1470991890.278546}, "id": "5cedba8d-19d3-439a-9577-a8f3d1f11434"}, {"task": {"inputs": [{"stepid": "04db9e8f-698d-45ff-b539-673e890a6306", "pointer_path": "/lhefile"}], "name": "pythia", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_1/pythia"], "readonly": ["/Users/lukas/Code/yadagedev/testing/hw", "/Users/lukas/Code/yadagedev/testing/hw/subchain_1"], "nametag": "pythia"}, "attributes": {"lhefile": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_1/madevent/lhefile.lhe"], "hepmcfile": "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/pythia/outputfile.hepmc", "settings_file": "/analysis/mainPythiaMLM.cmnd"}, "prepublished": {"hepmcfile": "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/pythia/outputfile.hepmc"}, "type": "yadagestep", "spec": {"process": {"cmd": "/analysis/pythia_main/example_main {settings_file} {hepmcfile} {lhefile}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"hepmcfile": "hepmcfile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}}, "name": "pythia", "state": "SUCCESS", "proxy": {"type": "PacktivityProxyBase", "proxydetails": null}, "timestamps": {"defined": 1470991889.626027, "ready by": 1470991890.275684, "submit": 1470991890.221071}, "id": "c470372d-046d-4456-9a4c-e31d30d1ed19"}, {"task": {"attributes": {"nevents": 100, "gridpack": "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz", "seed": 1}, "prepublished": {"nevents": 100, "gridpack": "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz", "seed": 1}, "type": "initstep", "name": "init subchain_0", "inputs": [{"stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7", "pointer_path": "/nevents"}, {"stepid": "6f5068d9-f081-421b-a7a5-3c85d52f05c1", "pointer_path": "/gridpack"}, {"stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7", "pointer_path": "/seeds/0"}]}, "name": "init subchain_0", "state": "SUCCESS", "proxy": {"type": "PacktivityProxyBase", "proxydetails": null}, "timestamps": {"defined": 1470991889.398478, "ready by": 1470991890.179936, "submit": 1470991890.15436}, "id": "06d79dc3-21ca-4380-b759-86f31aa40e79"}, {"task": {"attributes": {"nevents": 100, "gridpack": "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz", "seed": 2}, "prepublished": {"nevents": 100, "gridpack": "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz", "seed": 2}, "type": "initstep", "name": "init subchain_1", "inputs": [{"stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7", "pointer_path": "/nevents"}, {"stepid": "6f5068d9-f081-421b-a7a5-3c85d52f05c1", "pointer_path": "/gridpack"}, {"stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7", "pointer_path": "/seeds/1"}]}, "name": "init subchain_1", "state": "SUCCESS", "proxy": {"type": "PacktivityProxyBase", "proxydetails": null}, "timestamps": {"defined": 1470991889.252613, "ready by": 1470991890.178766, "submit": 1470991890.151616}, "id": "9ba61a94-9581-4a0a-9e90-e5575d7ab8ab"}, {"task": {"inputs": [{"stepid": "06d79dc3-21ca-4380-b759-86f31aa40e79", "pointer_path": "/nevents"}, {"stepid": "06d79dc3-21ca-4380-b759-86f31aa40e79", "pointer_path": "/gridpack"}, {"stepid": "06d79dc3-21ca-4380-b759-86f31aa40e79", "pointer_path": "/seed"}], "name": "madevent", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_0/madevent"], "readonly": ["/Users/lukas/Code/yadagedev/testing/hw", "/Users/lukas/Code/yadagedev/testing/hw/subchain_0"], "nametag": "madevent"}, "attributes": {"lhefile": "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/madevent/lhefile.lhe", "nevents": [100], "gridpack": ["/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz"], "seed": [1]}, "prepublished": {"lhefile": "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/madevent/lhefile.lhe"}, "type": "yadagestep", "spec": {"process": {"cmd": "./scripts/rungrid.sh {gridpack} {nevents} {seed} {lhefile}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"lhefile": "lhefile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}}, "name": "madevent", "state": "SUCCESS", "proxy": {"type": "PacktivityProxyBase", "proxydetails": null}, "timestamps": {"defined": 1470991889.54089, "ready by": 1470991890.216033, "submit": 1470991890.185877}, "id": "00cd9275-dc9c-4b86-9ee4-21d76d4f4ec9"}, {"task": {"inputs": [{"stepid": "00cd9275-dc9c-4b86-9ee4-21d76d4f4ec9", "pointer_path": "/lhefile"}], "name": "pythia", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_0/pythia"], "readonly": ["/Users/lukas/Code/yadagedev/testing/hw", "/Users/lukas/Code/yadagedev/testing/hw/subchain_0"], "nametag": "pythia"}, "attributes": {"lhefile": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_0/madevent/lhefile.lhe"], "hepmcfile": "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/pythia/outputfile.hepmc", "settings_file": "/analysis/mainPythiaMLM.cmnd"}, "prepublished": {"hepmcfile": "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/pythia/outputfile.hepmc"}, "type": "yadagestep", "spec": {"process": {"cmd": "/analysis/pythia_main/example_main {settings_file} {hepmcfile} {lhefile}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"hepmcfile": "hepmcfile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}}, "name": "pythia", "state": "SUCCESS", "proxy": {"type": "PacktivityProxyBase", "proxydetails": null}, "timestamps": {"defined": 1470991889.700552, "ready by": 1470991890.276316, "submit": 1470991890.219342}, "id": "db54e21b-327d-4e19-b284-d75d468052f4"}, {"task": {"attributes": {"kAzz": 0.1, "nevents": 100, "seeds": [1, 2], "kAww": 0.1, "kHww": 0.1, "kHzz": 0.1}, "prepublished": {"kAzz": 0.1, "nevents": 100, "seeds": [1, 2], "kAww": 0.1, "kHww": 0.1, "kHzz": 0.1}, "type": "initstep", "name": "init", "inputs": []}, "name": "init", "state": "SUCCESS", "proxy": {"type": "PacktivityProxyBase", "proxydetails": null}, "timestamps": {"defined": 1470991888.83428, "ready by": 1470991890.021968, "submit": 1470991890.019045}, "id": "561ba26c-a04c-4802-ab3e-0f20a8801ff7"}, {"task": {"inputs": [{"stepid": "9ba61a94-9581-4a0a-9e90-e5575d7ab8ab", "pointer_path": "/nevents"}, {"stepid": "9ba61a94-9581-4a0a-9e90-e5575d7ab8ab", "pointer_path": "/gridpack"}, {"stepid": "9ba61a94-9581-4a0a-9e90-e5575d7ab8ab", "pointer_path": "/seed"}], "name": "madevent", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_1/madevent"], "readonly": ["/Users/lukas/Code/yadagedev/testing/hw", "/Users/lukas/Code/yadagedev/testing/hw/subchain_1"], "nametag": "madevent"}, "attributes": {"lhefile": "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/madevent/lhefile.lhe", "nevents": [100], "gridpack": ["/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz"], "seed": [2]}, "prepublished": {"lhefile": "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/madevent/lhefile.lhe"}, "type": "yadagestep", "spec": {"process": {"cmd": "./scripts/rungrid.sh {gridpack} {nevents} {seed} {lhefile}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"lhefile": "lhefile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}}, "name": "madevent", "state": "SUCCESS", "proxy": {"type": "PacktivityProxyBase", "proxydetails": null}, "timestamps": {"defined": 1470991889.397958, "ready by": 1470991890.215152, "submit": 1470991890.183251}, "id": "04db9e8f-698d-45ff-b539-673e890a6306"}, {"task": {"inputs": [{"stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7", "pointer_path": "/kAzz"}, {"stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7", "pointer_path": "/kHzz"}, {"stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7", "pointer_path": "/kAww"}, {"stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7", "pointer_path": "/kHww"}], "name": "prepare", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw/prepare"], "readonly": ["/Users/lukas/Code/yadagedev/testing/hw"], "nametag": "prepare"}, "attributes": {"kAzz": [0.1], "param_card": "/Users/lukas/Code/yadagedev/testing/hw/prepare/param.dat", "kHzz": [0.1], "kAww": [0.1], "kHww": [0.1]}, "prepublished": {"param_card": "/Users/lukas/Code/yadagedev/testing/hw/prepare/param.dat"}, "type": "yadagestep", "spec": {"process": {"cmd": "./paramfromtemplate.py inputs/template_paramcard.dat {param_card}  -i \"{{kHzz: {kHzz}, kAzz: {kAzz}, kHww: {kHww}, kAww: {kAww}}}\"", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"param_card": "param_card"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}}, "name": "prepare", "state": "SUCCESS", "proxy": {"type": "PacktivityProxyBase", "proxydetails": null}, "timestamps": {"defined": 1470991889.016974, "ready by": 1470991890.09925, "submit": 1470991890.048156}, "id": "94cd0bd6-3f51-4b86-be12-ca1e87e07917"}, {"task": {"inputs": [{"stepid": "db54e21b-327d-4e19-b284-d75d468052f4", "pointer_path": "/hepmcfile"}], "name": "delphes", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_0/delphes"], "readonly": ["/Users/lukas/Code/yadagedev/testing/hw", "/Users/lukas/Code/yadagedev/testing/hw/subchain_0"], "nametag": "delphes"}, "attributes": {"detector_card": "/analysis/template_cards/modified_delphes_card_ATLAS.tcl", "outputfile": "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/delphes/outputfile.root", "inputfile": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_0/pythia/outputfile.hepmc"]}, "prepublished": {"delphesoutput": "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/delphes/outputfile.root"}, "type": "yadagestep", "spec": {"process": {"cmd": "DelphesHepMC {detector_card} {outputfile} {inputfile}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"delphesoutput": "outputfile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}}, "name": "delphes", "state": "SUCCESS", "proxy": {"type": "PacktivityProxyBase", "proxydetails": null}, "timestamps": {"defined": 1470991889.83478, "ready by": 1470991890.302856, "submit": 1470991890.277758}, "id": "01700e88-86cd-42dd-b60d-d24d89f11241"}, {"task": {"inputs": [{"stepid": "94cd0bd6-3f51-4b86-be12-ca1e87e07917", "pointer_path": "/param_card"}], "name": "grid", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw/grid"], "readonly": ["/Users/lukas/Code/yadagedev/testing/hw"], "nametag": "grid"}, "attributes": {"param_card": ["/Users/lukas/Code/yadagedev/testing/hw/prepare/param.dat"], "gridpack": "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz"}, "prepublished": {"gridpack": "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz"}, "type": "yadagestep", "spec": {"process": {"cmd": "./scripts/setupgrid.sh {param_card} {gridpack}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"gridpack": "gridpack"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}}, "name": "grid", "state": "SUCCESS", "proxy": {"type": "PacktivityProxyBase", "proxydetails": null}, "timestamps": {"defined": 1470991889.086547, "ready by": 1470991890.148269, "submit": 1470991890.100541}, "id": "6f5068d9-f081-421b-a7a5-3c85d52f05c1"}, {"task": {"inputs": [{"stepid": "01700e88-86cd-42dd-b60d-d24d89f11241", "pointer_path": "/delphesoutput"}], "name": "analysis", "context": {"readwrite": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_0/analysis"], "readonly": ["/Users/lukas/Code/yadagedev/testing/hw", "/Users/lukas/Code/yadagedev/testing/hw/subchain_0"], "nametag": "analysis"}, "attributes": {"fromdelphes": ["/Users/lukas/Code/yadagedev/testing/hw/subchain_0/delphes/outputfile.root"], "analysis_output": "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/analysis/anaout.root"}, "prepublished": {"analysis_output": "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/analysis/anaout.root"}, "type": "yadagestep", "spec": {"process": {"cmd": "./scripts/runpost.sh {fromdelphes} {analysis_output}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"analysis_output": "analysis_output"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/higgs-mc-studies", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}}, "name": "analysis", "state": "SUCCESS", "proxy": {"type": "PacktivityProxyBase", "proxydetails": null}, "timestamps": {"defined": 1470991889.947286, "ready by": 1470991890.334063, "submit": 1470991890.306002}, "id": "3fa5bc45-db83-4999-b1ec-3fb4ee53ab77"}], "edges": [["ac8b1293-6992-431d-bdf4-7f7be59a6e10", "d25fb13d-aebd-446c-aed8-703ba4eb0d39"], ["5cedba8d-19d3-439a-9577-a8f3d1f11434", "ac8b1293-6992-431d-bdf4-7f7be59a6e10"], ["c470372d-046d-4456-9a4c-e31d30d1ed19", "5cedba8d-19d3-439a-9577-a8f3d1f11434"], ["06d79dc3-21ca-4380-b759-86f31aa40e79", "00cd9275-dc9c-4b86-9ee4-21d76d4f4ec9"], ["9ba61a94-9581-4a0a-9e90-e5575d7ab8ab", "04db9e8f-698d-45ff-b539-673e890a6306"], ["00cd9275-dc9c-4b86-9ee4-21d76d4f4ec9", "db54e21b-327d-4e19-b284-d75d468052f4"], ["db54e21b-327d-4e19-b284-d75d468052f4", "01700e88-86cd-42dd-b60d-d24d89f11241"], ["561ba26c-a04c-4802-ab3e-0f20a8801ff7", "94cd0bd6-3f51-4b86-be12-ca1e87e07917"], ["561ba26c-a04c-4802-ab3e-0f20a8801ff7", "06d79dc3-21ca-4380-b759-86f31aa40e79"], ["561ba26c-a04c-4802-ab3e-0f20a8801ff7", "9ba61a94-9581-4a0a-9e90-e5575d7ab8ab"], ["04db9e8f-698d-45ff-b539-673e890a6306", "c470372d-046d-4456-9a4c-e31d30d1ed19"], ["94cd0bd6-3f51-4b86-be12-ca1e87e07917", "6f5068d9-f081-421b-a7a5-3c85d52f05c1"], ["01700e88-86cd-42dd-b60d-d24d89f11241", "3fa5bc45-db83-4999-b1ec-3fb4ee53ab77"], ["6f5068d9-f081-421b-a7a5-3c85d52f05c1", "06d79dc3-21ca-4380-b759-86f31aa40e79"], ["6f5068d9-f081-421b-a7a5-3c85d52f05c1", "9ba61a94-9581-4a0a-9e90-e5575d7ab8ab"], ["3fa5bc45-db83-4999-b1ec-3fb4ee53ab77", "d25fb13d-aebd-446c-aed8-703ba4eb0d39"]]}, "stepsbystage": {"init": [{"_nodeid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7"}], "grid": [{"_nodeid": "6f5068d9-f081-421b-a7a5-3c85d52f05c1"}], "subchain": [{"madevent": [{"_nodeid": "00cd9275-dc9c-4b86-9ee4-21d76d4f4ec9"}], "analysis": [{"_nodeid": "3fa5bc45-db83-4999-b1ec-3fb4ee53ab77"}], "_offset": "/subchain/0", "init": [{"_nodeid": "06d79dc3-21ca-4380-b759-86f31aa40e79"}], "delphes": [{"_nodeid": "01700e88-86cd-42dd-b60d-d24d89f11241"}], "pythia": [{"_nodeid": "db54e21b-327d-4e19-b284-d75d468052f4"}]}, {"madevent": [{"_nodeid": "04db9e8f-698d-45ff-b539-673e890a6306"}], "analysis": [{"_nodeid": "ac8b1293-6992-431d-bdf4-7f7be59a6e10"}], "_offset": "/subchain/1", "init": [{"_nodeid": "9ba61a94-9581-4a0a-9e90-e5575d7ab8ab"}], "delphes": [{"_nodeid": "5cedba8d-19d3-439a-9577-a8f3d1f11434"}], "pythia": [{"_nodeid": "c470372d-046d-4456-9a4c-e31d30d1ed19"}]}], "prepare": [{"_nodeid": "94cd0bd6-3f51-4b86-be12-ca1e87e07917"}], "rootmerge": [{"_nodeid": "d25fb13d-aebd-446c-aed8-703ba4eb0d39"}]}, "bookkeeping": {"_meta": {"rules": ["7ada2e01-44d8-48f7-a12d-e478656da4a5", "27e9be9d-1a82-4760-9fe6-3cadc5cf95ee", "7e33c3af-6e2e-4869-afca-6d9f61c7cda0", "1aa1a7ce-b968-4230-973f-223da0484ca6", "d0c8d385-d6b1-4f7f-972b-f98e55e89bac"], "steps": ["561ba26c-a04c-4802-ab3e-0f20a8801ff7", "94cd0bd6-3f51-4b86-be12-ca1e87e07917", "6f5068d9-f081-421b-a7a5-3c85d52f05c1", "d25fb13d-aebd-446c-aed8-703ba4eb0d39"]}, "subchain": {"1": {"_meta": {"rules": ["91d826f9-db88-49d3-ba74-8d61e6938651", "9050daf2-2966-48eb-b2db-c9162b54b0f5", "5dcdb920-8b0b-4605-aed0-64dd92af7868", "329c3809-3038-4455-a378-6ebfc8082b1a", "68254d8a-dd1a-4dc1-8fa4-dab33dc6a034"], "steps": ["9ba61a94-9581-4a0a-9e90-e5575d7ab8ab", "04db9e8f-698d-45ff-b539-673e890a6306", "c470372d-046d-4456-9a4c-e31d30d1ed19", "5cedba8d-19d3-439a-9577-a8f3d1f11434", "ac8b1293-6992-431d-bdf4-7f7be59a6e10"]}}, "0": {"_meta": {"rules": ["f38b27d3-f38c-466f-87de-3437d161e517", "d6faf1b1-ed91-4ba6-a5a4-3f8e56a8715e", "9f040da6-2c74-4c3e-be47-a89acb220948", "db1f1d01-dadb-437a-aa11-6eb5f024f8e7", "bfd97619-2b9a-4e66-a2a8-7df7051530b2"], "steps": ["06d79dc3-21ca-4380-b759-86f31aa40e79", "00cd9275-dc9c-4b86-9ee4-21d76d4f4ec9", "db54e21b-327d-4e19-b284-d75d468052f4", "01700e88-86cd-42dd-b60d-d24d89f11241", "3fa5bc45-db83-4999-b1ec-3fb4ee53ab77"]}}}}}
+{
+  "rules": [],
+  "applied": [
+    {
+      "type": "offset",
+      "id": "d0c8d385-d6b1-4f7f-972b-f98e55e89bac",
+      "rule": {
+        "info": "",
+        "step": {
+          "attributes": {
+            "kAzz": 0.1,
+            "nevents": 100,
+            "seeds": [
+              1,
+              2
+            ],
+            "kAww": 0.1,
+            "kHww": 0.1,
+            "kHzz": 0.1
+          },
+          "prepublished": {
+            "kAzz": 0.1,
+            "nevents": 100,
+            "seeds": [
+              1,
+              2
+            ],
+            "kAww": 0.1,
+            "kHww": 0.1,
+            "kHzz": 0.1
+          },
+          "type": "initstep",
+          "name": "init",
+          "inputs": []
+        },
+        "dependencies": null,
+        "name": "init",
+        "context": {},
+        "type": "initStage"
+      },
+      "offset": ""
+    },
+    {
+      "type": "offset",
+      "id": "7ada2e01-44d8-48f7-a12d-e478656da4a5",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "./paramfromtemplate.py inputs/template_paramcard.dat {param_card}  -i \"{{kHzz: {kHzz}, kAzz: {kAzz}, kHww: {kHww}, kAww: {kAww}}}\"",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "param_card": "param_card"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": {
+                "output": "kAzz",
+                "stages": "init"
+              },
+              "key": "kAzz"
+            },
+            {
+              "value": "{workdir}/param.dat",
+              "key": "param_card"
+            },
+            {
+              "value": {
+                "output": "kHzz",
+                "stages": "init"
+              },
+              "key": "kHzz"
+            },
+            {
+              "value": {
+                "output": "kAww",
+                "stages": "init"
+              },
+              "key": "kAww"
+            },
+            {
+              "value": {
+                "output": "kHww",
+                "stages": "init"
+              },
+              "key": "kHww"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "init"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "prepare",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/testing/hw"
+          ],
+          "readonly": [],
+          "nametag": "hw"
+        }
+      },
+      "offset": ""
+    },
+    {
+      "type": "offset",
+      "id": "27e9be9d-1a82-4760-9fe6-3cadc5cf95ee",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "./scripts/setupgrid.sh {param_card} {gridpack}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "gridpack": "gridpack"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": {
+                "output": "param_card",
+                "stages": "prepare"
+              },
+              "key": "param_card"
+            },
+            {
+              "value": "{workdir}/grid.tar.gz",
+              "key": "gridpack"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "prepare"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "grid",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/testing/hw"
+          ],
+          "readonly": [],
+          "nametag": "hw"
+        }
+      },
+      "offset": ""
+    },
+    {
+      "type": "offset",
+      "id": "7e33c3af-6e2e-4869-afca-6d9f61c7cda0",
+      "rule": {
+        "info": {
+          "scheduler_type": "multistep-stage",
+          "scatter": {
+            "method": "zip",
+            "parameters": [
+              "seed"
+            ]
+          },
+          "parameters": [
+            {
+              "value": {
+                "output": "nevents",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "nevents"
+            },
+            {
+              "value": {
+                "output": "gridpack",
+                "stages": "grid",
+                "unwrap": true
+              },
+              "key": "gridpack"
+            },
+            {
+              "value": {
+                "output": "seeds",
+                "stages": "init",
+                "flatten": true
+              },
+              "key": "seed"
+            }
+          ],
+          "workflow": {
+            "stages": [
+              {
+                "dependencies": {
+                  "dependency_type": "jsonpath_ready",
+                  "expressions": [
+                    "init"
+                  ]
+                },
+                "name": "madevent",
+                "scheduler": {
+                  "step": {
+                    "process": {
+                      "cmd": "./scripts/rungrid.sh {gridpack} {nevents} {seed} {lhefile}",
+                      "process_type": "string-interpolated-cmd"
+                    },
+                    "publisher": {
+                      "publisher_type": "frompar-pub",
+                      "outputmap": {
+                        "lhefile": "lhefile"
+                      }
+                    },
+                    "environment": {
+                      "imagetag": "latest",
+                      "image": "lukasheinrich/higgs-mc-studies",
+                      "envscript": "",
+                      "environment_type": "docker-encapsulated",
+                      "env": {},
+                      "resources": []
+                    }
+                  },
+                  "scheduler_type": "singlestep-stage",
+                  "parameters": [
+                    {
+                      "value": "{workdir}/lhefile.lhe",
+                      "key": "lhefile"
+                    },
+                    {
+                      "value": {
+                        "output": "nevents",
+                        "stages": "init"
+                      },
+                      "key": "nevents"
+                    },
+                    {
+                      "value": {
+                        "output": "gridpack",
+                        "stages": "init"
+                      },
+                      "key": "gridpack"
+                    },
+                    {
+                      "value": {
+                        "output": "seed",
+                        "stages": "init"
+                      },
+                      "key": "seed"
+                    }
+                  ]
+                }
+              },
+              {
+                "dependencies": {
+                  "dependency_type": "jsonpath_ready",
+                  "expressions": [
+                    "madevent"
+                  ]
+                },
+                "name": "pythia",
+                "scheduler": {
+                  "step": {
+                    "process": {
+                      "cmd": "/analysis/pythia_main/example_main {settings_file} {hepmcfile} {lhefile}",
+                      "process_type": "string-interpolated-cmd"
+                    },
+                    "publisher": {
+                      "publisher_type": "frompar-pub",
+                      "outputmap": {
+                        "hepmcfile": "hepmcfile"
+                      }
+                    },
+                    "environment": {
+                      "imagetag": "latest",
+                      "image": "lukasheinrich/higgs-mc-studies",
+                      "envscript": "",
+                      "environment_type": "docker-encapsulated",
+                      "env": {},
+                      "resources": []
+                    }
+                  },
+                  "scheduler_type": "singlestep-stage",
+                  "parameters": [
+                    {
+                      "value": {
+                        "output": "lhefile",
+                        "stages": "madevent"
+                      },
+                      "key": "lhefile"
+                    },
+                    {
+                      "value": "{workdir}/outputfile.hepmc",
+                      "key": "hepmcfile"
+                    },
+                    {
+                      "value": "/analysis/mainPythiaMLM.cmnd",
+                      "key": "settings_file"
+                    }
+                  ]
+                }
+              },
+              {
+                "dependencies": {
+                  "dependency_type": "jsonpath_ready",
+                  "expressions": [
+                    "pythia"
+                  ]
+                },
+                "name": "delphes",
+                "scheduler": {
+                  "step": {
+                    "process": {
+                      "cmd": "DelphesHepMC {detector_card} {outputfile} {inputfile}",
+                      "process_type": "string-interpolated-cmd"
+                    },
+                    "publisher": {
+                      "publisher_type": "frompar-pub",
+                      "outputmap": {
+                        "delphesoutput": "outputfile"
+                      }
+                    },
+                    "environment": {
+                      "imagetag": "latest",
+                      "image": "lukasheinrich/higgs-mc-studies",
+                      "envscript": "",
+                      "environment_type": "docker-encapsulated",
+                      "env": {},
+                      "resources": []
+                    }
+                  },
+                  "scheduler_type": "singlestep-stage",
+                  "parameters": [
+                    {
+                      "value": "/analysis/template_cards/modified_delphes_card_ATLAS.tcl",
+                      "key": "detector_card"
+                    },
+                    {
+                      "value": "{workdir}/outputfile.root",
+                      "key": "outputfile"
+                    },
+                    {
+                      "value": {
+                        "output": "hepmcfile",
+                        "stages": "pythia"
+                      },
+                      "key": "inputfile"
+                    }
+                  ]
+                }
+              },
+              {
+                "dependencies": {
+                  "dependency_type": "jsonpath_ready",
+                  "expressions": [
+                    "delphes"
+                  ]
+                },
+                "name": "analysis",
+                "scheduler": {
+                  "step": {
+                    "process": {
+                      "cmd": "./scripts/runpost.sh {fromdelphes} {analysis_output}",
+                      "process_type": "string-interpolated-cmd"
+                    },
+                    "publisher": {
+                      "publisher_type": "frompar-pub",
+                      "outputmap": {
+                        "analysis_output": "analysis_output"
+                      }
+                    },
+                    "environment": {
+                      "imagetag": "latest",
+                      "image": "lukasheinrich/higgs-mc-studies",
+                      "envscript": "",
+                      "environment_type": "docker-encapsulated",
+                      "env": {},
+                      "resources": []
+                    }
+                  },
+                  "scheduler_type": "singlestep-stage",
+                  "parameters": [
+                    {
+                      "value": {
+                        "output": "delphesoutput",
+                        "stages": "delphes"
+                      },
+                      "key": "fromdelphes"
+                    },
+                    {
+                      "value": "{workdir}/anaout.root",
+                      "key": "analysis_output"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "grid"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "subchain",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/testing/hw"
+          ],
+          "readonly": [],
+          "nametag": "hw"
+        }
+      },
+      "offset": ""
+    },
+    {
+      "type": "offset",
+      "id": "68254d8a-dd1a-4dc1-8fa4-dab33dc6a034",
+      "rule": {
+        "info": "",
+        "step": {
+          "attributes": {
+            "nevents": 100,
+            "gridpack": "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz",
+            "seed": 2
+          },
+          "prepublished": {
+            "nevents": 100,
+            "gridpack": "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz",
+            "seed": 2
+          },
+          "type": "initstep",
+          "name": "init subchain_1",
+          "inputs": [
+            {
+              "stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7",
+              "pointer_path": "/nevents"
+            },
+            {
+              "stepid": "6f5068d9-f081-421b-a7a5-3c85d52f05c1",
+              "pointer_path": "/gridpack"
+            },
+            {
+              "stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7",
+              "pointer_path": "/seeds/1"
+            }
+          ]
+        },
+        "dependencies": null,
+        "name": "init",
+        "context": {},
+        "type": "initStage"
+      },
+      "offset": "/subchain/1"
+    },
+    {
+      "type": "offset",
+      "id": "91d826f9-db88-49d3-ba74-8d61e6938651",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "./scripts/rungrid.sh {gridpack} {nevents} {seed} {lhefile}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "lhefile": "lhefile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": "{workdir}/lhefile.lhe",
+              "key": "lhefile"
+            },
+            {
+              "value": {
+                "output": "nevents",
+                "stages": "init"
+              },
+              "key": "nevents"
+            },
+            {
+              "value": {
+                "output": "gridpack",
+                "stages": "init"
+              },
+              "key": "gridpack"
+            },
+            {
+              "value": {
+                "output": "seed",
+                "stages": "init"
+              },
+              "key": "seed"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "init"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "madevent",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/testing/hw/subchain_1"
+          ],
+          "readonly": [
+            "/Users/lukas/Code/yadagedev/testing/hw"
+          ],
+          "nametag": "subchain_1"
+        }
+      },
+      "offset": "/subchain/1"
+    },
+    {
+      "type": "offset",
+      "id": "bfd97619-2b9a-4e66-a2a8-7df7051530b2",
+      "rule": {
+        "info": "",
+        "step": {
+          "attributes": {
+            "nevents": 100,
+            "gridpack": "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz",
+            "seed": 1
+          },
+          "prepublished": {
+            "nevents": 100,
+            "gridpack": "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz",
+            "seed": 1
+          },
+          "type": "initstep",
+          "name": "init subchain_0",
+          "inputs": [
+            {
+              "stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7",
+              "pointer_path": "/nevents"
+            },
+            {
+              "stepid": "6f5068d9-f081-421b-a7a5-3c85d52f05c1",
+              "pointer_path": "/gridpack"
+            },
+            {
+              "stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7",
+              "pointer_path": "/seeds/0"
+            }
+          ]
+        },
+        "dependencies": null,
+        "name": "init",
+        "context": {},
+        "type": "initStage"
+      },
+      "offset": "/subchain/0"
+    },
+    {
+      "type": "offset",
+      "id": "f38b27d3-f38c-466f-87de-3437d161e517",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "./scripts/rungrid.sh {gridpack} {nevents} {seed} {lhefile}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "lhefile": "lhefile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": "{workdir}/lhefile.lhe",
+              "key": "lhefile"
+            },
+            {
+              "value": {
+                "output": "nevents",
+                "stages": "init"
+              },
+              "key": "nevents"
+            },
+            {
+              "value": {
+                "output": "gridpack",
+                "stages": "init"
+              },
+              "key": "gridpack"
+            },
+            {
+              "value": {
+                "output": "seed",
+                "stages": "init"
+              },
+              "key": "seed"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "init"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "madevent",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/testing/hw/subchain_0"
+          ],
+          "readonly": [
+            "/Users/lukas/Code/yadagedev/testing/hw"
+          ],
+          "nametag": "subchain_0"
+        }
+      },
+      "offset": "/subchain/0"
+    },
+    {
+      "type": "offset",
+      "id": "9050daf2-2966-48eb-b2db-c9162b54b0f5",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "/analysis/pythia_main/example_main {settings_file} {hepmcfile} {lhefile}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "hepmcfile": "hepmcfile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": {
+                "output": "lhefile",
+                "stages": "madevent"
+              },
+              "key": "lhefile"
+            },
+            {
+              "value": "{workdir}/outputfile.hepmc",
+              "key": "hepmcfile"
+            },
+            {
+              "value": "/analysis/mainPythiaMLM.cmnd",
+              "key": "settings_file"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "madevent"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "pythia",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/testing/hw/subchain_1"
+          ],
+          "readonly": [
+            "/Users/lukas/Code/yadagedev/testing/hw"
+          ],
+          "nametag": "subchain_1"
+        }
+      },
+      "offset": "/subchain/1"
+    },
+    {
+      "type": "offset",
+      "id": "d6faf1b1-ed91-4ba6-a5a4-3f8e56a8715e",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "/analysis/pythia_main/example_main {settings_file} {hepmcfile} {lhefile}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "hepmcfile": "hepmcfile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": {
+                "output": "lhefile",
+                "stages": "madevent"
+              },
+              "key": "lhefile"
+            },
+            {
+              "value": "{workdir}/outputfile.hepmc",
+              "key": "hepmcfile"
+            },
+            {
+              "value": "/analysis/mainPythiaMLM.cmnd",
+              "key": "settings_file"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "madevent"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "pythia",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/testing/hw/subchain_0"
+          ],
+          "readonly": [
+            "/Users/lukas/Code/yadagedev/testing/hw"
+          ],
+          "nametag": "subchain_0"
+        }
+      },
+      "offset": "/subchain/0"
+    },
+    {
+      "type": "offset",
+      "id": "5dcdb920-8b0b-4605-aed0-64dd92af7868",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "DelphesHepMC {detector_card} {outputfile} {inputfile}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "delphesoutput": "outputfile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": "/analysis/template_cards/modified_delphes_card_ATLAS.tcl",
+              "key": "detector_card"
+            },
+            {
+              "value": "{workdir}/outputfile.root",
+              "key": "outputfile"
+            },
+            {
+              "value": {
+                "output": "hepmcfile",
+                "stages": "pythia"
+              },
+              "key": "inputfile"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "pythia"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "delphes",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/testing/hw/subchain_1"
+          ],
+          "readonly": [
+            "/Users/lukas/Code/yadagedev/testing/hw"
+          ],
+          "nametag": "subchain_1"
+        }
+      },
+      "offset": "/subchain/1"
+    },
+    {
+      "type": "offset",
+      "id": "9f040da6-2c74-4c3e-be47-a89acb220948",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "DelphesHepMC {detector_card} {outputfile} {inputfile}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "delphesoutput": "outputfile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": "/analysis/template_cards/modified_delphes_card_ATLAS.tcl",
+              "key": "detector_card"
+            },
+            {
+              "value": "{workdir}/outputfile.root",
+              "key": "outputfile"
+            },
+            {
+              "value": {
+                "output": "hepmcfile",
+                "stages": "pythia"
+              },
+              "key": "inputfile"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "pythia"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "delphes",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/testing/hw/subchain_0"
+          ],
+          "readonly": [
+            "/Users/lukas/Code/yadagedev/testing/hw"
+          ],
+          "nametag": "subchain_0"
+        }
+      },
+      "offset": "/subchain/0"
+    },
+    {
+      "type": "offset",
+      "id": "329c3809-3038-4455-a378-6ebfc8082b1a",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "./scripts/runpost.sh {fromdelphes} {analysis_output}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "analysis_output": "analysis_output"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": {
+                "output": "delphesoutput",
+                "stages": "delphes"
+              },
+              "key": "fromdelphes"
+            },
+            {
+              "value": "{workdir}/anaout.root",
+              "key": "analysis_output"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "delphes"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "analysis",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/testing/hw/subchain_1"
+          ],
+          "readonly": [
+            "/Users/lukas/Code/yadagedev/testing/hw"
+          ],
+          "nametag": "subchain_1"
+        }
+      },
+      "offset": "/subchain/1"
+    },
+    {
+      "type": "offset",
+      "id": "db1f1d01-dadb-437a-aa11-6eb5f024f8e7",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "./scripts/runpost.sh {fromdelphes} {analysis_output}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "analysis_output": "analysis_output"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": {
+                "output": "delphesoutput",
+                "stages": "delphes"
+              },
+              "key": "fromdelphes"
+            },
+            {
+              "value": "{workdir}/anaout.root",
+              "key": "analysis_output"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "delphes"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "analysis",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/testing/hw/subchain_0"
+          ],
+          "readonly": [
+            "/Users/lukas/Code/yadagedev/testing/hw"
+          ],
+          "nametag": "subchain_0"
+        }
+      },
+      "offset": "/subchain/0"
+    },
+    {
+      "type": "offset",
+      "id": "1aa1a7ce-b968-4230-973f-223da0484ca6",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "hadd {mergedfile} {inputfiles}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "mergedfile": "mergedfile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": "{workdir}/anamerged.root",
+              "key": "mergedfile"
+            },
+            {
+              "value": {
+                "output": "analysis_output",
+                "stages": "subchain.[*].analysis"
+              },
+              "key": "inputfiles"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "subchain"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "rootmerge",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/testing/hw"
+          ],
+          "readonly": [],
+          "nametag": "hw"
+        }
+      },
+      "offset": ""
+    }
+  ],
+  "dag": {
+    "nodes": [
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "5cedba8d-19d3-439a-9577-a8f3d1f11434",
+              "pointer_path": "/delphesoutput"
+            }
+          ],
+          "name": "analysis",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/analysis"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/testing/hw",
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_1"
+            ],
+            "nametag": "analysis"
+          },
+          "attributes": {
+            "fromdelphes": [
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/delphes/outputfile.root"
+            ],
+            "analysis_output": "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/analysis/anaout.root"
+          },
+          "prepublished": {
+            "analysis_output": "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/analysis/anaout.root"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "./scripts/runpost.sh {fromdelphes} {analysis_output}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "analysis_output": "analysis_output"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          }
+        },
+        "name": "analysis",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1470991889.893889,
+          "ready by": 1470991890.332817,
+          "submit": 1470991890.311218
+        },
+        "id": "ac8b1293-6992-431d-bdf4-7f7be59a6e10"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "3fa5bc45-db83-4999-b1ec-3fb4ee53ab77",
+              "pointer_path": "/analysis_output"
+            },
+            {
+              "stepid": "ac8b1293-6992-431d-bdf4-7f7be59a6e10",
+              "pointer_path": "/analysis_output"
+            }
+          ],
+          "name": "rootmerge",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/testing/hw/rootmerge"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/testing/hw"
+            ],
+            "nametag": "rootmerge"
+          },
+          "attributes": {
+            "mergedfile": "/Users/lukas/Code/yadagedev/testing/hw/rootmerge/anamerged.root",
+            "inputfiles": [
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/analysis/anaout.root",
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/analysis/anaout.root"
+            ]
+          },
+          "prepublished": {
+            "mergedfile": "/Users/lukas/Code/yadagedev/testing/hw/rootmerge/anamerged.root"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "hadd {mergedfile} {inputfiles}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "mergedfile": "mergedfile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          }
+        },
+        "name": "rootmerge",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1470991890.017548,
+          "ready by": 1470991890.361839,
+          "submit": 1470991890.337919
+        },
+        "id": "d25fb13d-aebd-446c-aed8-703ba4eb0d39"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "c470372d-046d-4456-9a4c-e31d30d1ed19",
+              "pointer_path": "/hepmcfile"
+            }
+          ],
+          "name": "delphes",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/delphes"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/testing/hw",
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_1"
+            ],
+            "nametag": "delphes"
+          },
+          "attributes": {
+            "detector_card": "/analysis/template_cards/modified_delphes_card_ATLAS.tcl",
+            "outputfile": "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/delphes/outputfile.root",
+            "inputfile": [
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/pythia/outputfile.hepmc"
+            ]
+          },
+          "prepublished": {
+            "delphesoutput": "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/delphes/outputfile.root"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "DelphesHepMC {detector_card} {outputfile} {inputfile}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "delphesoutput": "outputfile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          }
+        },
+        "name": "delphes",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1470991889.776112,
+          "ready by": 1470991890.301248,
+          "submit": 1470991890.278546
+        },
+        "id": "5cedba8d-19d3-439a-9577-a8f3d1f11434"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "04db9e8f-698d-45ff-b539-673e890a6306",
+              "pointer_path": "/lhefile"
+            }
+          ],
+          "name": "pythia",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/pythia"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/testing/hw",
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_1"
+            ],
+            "nametag": "pythia"
+          },
+          "attributes": {
+            "lhefile": [
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/madevent/lhefile.lhe"
+            ],
+            "hepmcfile": "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/pythia/outputfile.hepmc",
+            "settings_file": "/analysis/mainPythiaMLM.cmnd"
+          },
+          "prepublished": {
+            "hepmcfile": "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/pythia/outputfile.hepmc"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "/analysis/pythia_main/example_main {settings_file} {hepmcfile} {lhefile}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "hepmcfile": "hepmcfile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          }
+        },
+        "name": "pythia",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1470991889.626027,
+          "ready by": 1470991890.275684,
+          "submit": 1470991890.221071
+        },
+        "id": "c470372d-046d-4456-9a4c-e31d30d1ed19"
+      },
+      {
+        "task": {
+          "attributes": {
+            "nevents": 100,
+            "gridpack": "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz",
+            "seed": 1
+          },
+          "prepublished": {
+            "nevents": 100,
+            "gridpack": "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz",
+            "seed": 1
+          },
+          "type": "initstep",
+          "name": "init subchain_0",
+          "inputs": [
+            {
+              "stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7",
+              "pointer_path": "/nevents"
+            },
+            {
+              "stepid": "6f5068d9-f081-421b-a7a5-3c85d52f05c1",
+              "pointer_path": "/gridpack"
+            },
+            {
+              "stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7",
+              "pointer_path": "/seeds/0"
+            }
+          ]
+        },
+        "name": "init subchain_0",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1470991889.398478,
+          "ready by": 1470991890.179936,
+          "submit": 1470991890.15436
+        },
+        "id": "06d79dc3-21ca-4380-b759-86f31aa40e79"
+      },
+      {
+        "task": {
+          "attributes": {
+            "nevents": 100,
+            "gridpack": "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz",
+            "seed": 2
+          },
+          "prepublished": {
+            "nevents": 100,
+            "gridpack": "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz",
+            "seed": 2
+          },
+          "type": "initstep",
+          "name": "init subchain_1",
+          "inputs": [
+            {
+              "stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7",
+              "pointer_path": "/nevents"
+            },
+            {
+              "stepid": "6f5068d9-f081-421b-a7a5-3c85d52f05c1",
+              "pointer_path": "/gridpack"
+            },
+            {
+              "stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7",
+              "pointer_path": "/seeds/1"
+            }
+          ]
+        },
+        "name": "init subchain_1",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1470991889.252613,
+          "ready by": 1470991890.178766,
+          "submit": 1470991890.151616
+        },
+        "id": "9ba61a94-9581-4a0a-9e90-e5575d7ab8ab"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "06d79dc3-21ca-4380-b759-86f31aa40e79",
+              "pointer_path": "/nevents"
+            },
+            {
+              "stepid": "06d79dc3-21ca-4380-b759-86f31aa40e79",
+              "pointer_path": "/gridpack"
+            },
+            {
+              "stepid": "06d79dc3-21ca-4380-b759-86f31aa40e79",
+              "pointer_path": "/seed"
+            }
+          ],
+          "name": "madevent",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/madevent"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/testing/hw",
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_0"
+            ],
+            "nametag": "madevent"
+          },
+          "attributes": {
+            "lhefile": "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/madevent/lhefile.lhe",
+            "nevents": [
+              100
+            ],
+            "gridpack": [
+              "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz"
+            ],
+            "seed": [
+              1
+            ]
+          },
+          "prepublished": {
+            "lhefile": "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/madevent/lhefile.lhe"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "./scripts/rungrid.sh {gridpack} {nevents} {seed} {lhefile}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "lhefile": "lhefile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          }
+        },
+        "name": "madevent",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1470991889.54089,
+          "ready by": 1470991890.216033,
+          "submit": 1470991890.185877
+        },
+        "id": "00cd9275-dc9c-4b86-9ee4-21d76d4f4ec9"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "00cd9275-dc9c-4b86-9ee4-21d76d4f4ec9",
+              "pointer_path": "/lhefile"
+            }
+          ],
+          "name": "pythia",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/pythia"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/testing/hw",
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_0"
+            ],
+            "nametag": "pythia"
+          },
+          "attributes": {
+            "lhefile": [
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/madevent/lhefile.lhe"
+            ],
+            "hepmcfile": "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/pythia/outputfile.hepmc",
+            "settings_file": "/analysis/mainPythiaMLM.cmnd"
+          },
+          "prepublished": {
+            "hepmcfile": "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/pythia/outputfile.hepmc"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "/analysis/pythia_main/example_main {settings_file} {hepmcfile} {lhefile}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "hepmcfile": "hepmcfile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          }
+        },
+        "name": "pythia",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1470991889.700552,
+          "ready by": 1470991890.276316,
+          "submit": 1470991890.219342
+        },
+        "id": "db54e21b-327d-4e19-b284-d75d468052f4"
+      },
+      {
+        "task": {
+          "attributes": {
+            "kAzz": 0.1,
+            "nevents": 100,
+            "seeds": [
+              1,
+              2
+            ],
+            "kAww": 0.1,
+            "kHww": 0.1,
+            "kHzz": 0.1
+          },
+          "prepublished": {
+            "kAzz": 0.1,
+            "nevents": 100,
+            "seeds": [
+              1,
+              2
+            ],
+            "kAww": 0.1,
+            "kHww": 0.1,
+            "kHzz": 0.1
+          },
+          "type": "initstep",
+          "name": "init",
+          "inputs": []
+        },
+        "name": "init",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1470991888.83428,
+          "ready by": 1470991890.021968,
+          "submit": 1470991890.019045
+        },
+        "id": "561ba26c-a04c-4802-ab3e-0f20a8801ff7"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "9ba61a94-9581-4a0a-9e90-e5575d7ab8ab",
+              "pointer_path": "/nevents"
+            },
+            {
+              "stepid": "9ba61a94-9581-4a0a-9e90-e5575d7ab8ab",
+              "pointer_path": "/gridpack"
+            },
+            {
+              "stepid": "9ba61a94-9581-4a0a-9e90-e5575d7ab8ab",
+              "pointer_path": "/seed"
+            }
+          ],
+          "name": "madevent",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/madevent"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/testing/hw",
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_1"
+            ],
+            "nametag": "madevent"
+          },
+          "attributes": {
+            "lhefile": "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/madevent/lhefile.lhe",
+            "nevents": [
+              100
+            ],
+            "gridpack": [
+              "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz"
+            ],
+            "seed": [
+              2
+            ]
+          },
+          "prepublished": {
+            "lhefile": "/Users/lukas/Code/yadagedev/testing/hw/subchain_1/madevent/lhefile.lhe"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "./scripts/rungrid.sh {gridpack} {nevents} {seed} {lhefile}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "lhefile": "lhefile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          }
+        },
+        "name": "madevent",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1470991889.397958,
+          "ready by": 1470991890.215152,
+          "submit": 1470991890.183251
+        },
+        "id": "04db9e8f-698d-45ff-b539-673e890a6306"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7",
+              "pointer_path": "/kAzz"
+            },
+            {
+              "stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7",
+              "pointer_path": "/kHzz"
+            },
+            {
+              "stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7",
+              "pointer_path": "/kAww"
+            },
+            {
+              "stepid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7",
+              "pointer_path": "/kHww"
+            }
+          ],
+          "name": "prepare",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/testing/hw/prepare"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/testing/hw"
+            ],
+            "nametag": "prepare"
+          },
+          "attributes": {
+            "kAzz": [
+              0.1
+            ],
+            "param_card": "/Users/lukas/Code/yadagedev/testing/hw/prepare/param.dat",
+            "kHzz": [
+              0.1
+            ],
+            "kAww": [
+              0.1
+            ],
+            "kHww": [
+              0.1
+            ]
+          },
+          "prepublished": {
+            "param_card": "/Users/lukas/Code/yadagedev/testing/hw/prepare/param.dat"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "./paramfromtemplate.py inputs/template_paramcard.dat {param_card}  -i \"{{kHzz: {kHzz}, kAzz: {kAzz}, kHww: {kHww}, kAww: {kAww}}}\"",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "param_card": "param_card"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          }
+        },
+        "name": "prepare",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1470991889.016974,
+          "ready by": 1470991890.09925,
+          "submit": 1470991890.048156
+        },
+        "id": "94cd0bd6-3f51-4b86-be12-ca1e87e07917"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "db54e21b-327d-4e19-b284-d75d468052f4",
+              "pointer_path": "/hepmcfile"
+            }
+          ],
+          "name": "delphes",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/delphes"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/testing/hw",
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_0"
+            ],
+            "nametag": "delphes"
+          },
+          "attributes": {
+            "detector_card": "/analysis/template_cards/modified_delphes_card_ATLAS.tcl",
+            "outputfile": "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/delphes/outputfile.root",
+            "inputfile": [
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/pythia/outputfile.hepmc"
+            ]
+          },
+          "prepublished": {
+            "delphesoutput": "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/delphes/outputfile.root"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "DelphesHepMC {detector_card} {outputfile} {inputfile}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "delphesoutput": "outputfile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          }
+        },
+        "name": "delphes",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1470991889.83478,
+          "ready by": 1470991890.302856,
+          "submit": 1470991890.277758
+        },
+        "id": "01700e88-86cd-42dd-b60d-d24d89f11241"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "94cd0bd6-3f51-4b86-be12-ca1e87e07917",
+              "pointer_path": "/param_card"
+            }
+          ],
+          "name": "grid",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/testing/hw/grid"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/testing/hw"
+            ],
+            "nametag": "grid"
+          },
+          "attributes": {
+            "param_card": [
+              "/Users/lukas/Code/yadagedev/testing/hw/prepare/param.dat"
+            ],
+            "gridpack": "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz"
+          },
+          "prepublished": {
+            "gridpack": "/Users/lukas/Code/yadagedev/testing/hw/grid/grid.tar.gz"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "./scripts/setupgrid.sh {param_card} {gridpack}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "gridpack": "gridpack"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          }
+        },
+        "name": "grid",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1470991889.086547,
+          "ready by": 1470991890.148269,
+          "submit": 1470991890.100541
+        },
+        "id": "6f5068d9-f081-421b-a7a5-3c85d52f05c1"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "01700e88-86cd-42dd-b60d-d24d89f11241",
+              "pointer_path": "/delphesoutput"
+            }
+          ],
+          "name": "analysis",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/analysis"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/testing/hw",
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_0"
+            ],
+            "nametag": "analysis"
+          },
+          "attributes": {
+            "fromdelphes": [
+              "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/delphes/outputfile.root"
+            ],
+            "analysis_output": "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/analysis/anaout.root"
+          },
+          "prepublished": {
+            "analysis_output": "/Users/lukas/Code/yadagedev/testing/hw/subchain_0/analysis/anaout.root"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "./scripts/runpost.sh {fromdelphes} {analysis_output}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "analysis_output": "analysis_output"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/higgs-mc-studies",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          }
+        },
+        "name": "analysis",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1470991889.947286,
+          "ready by": 1470991890.334063,
+          "submit": 1470991890.306002
+        },
+        "id": "3fa5bc45-db83-4999-b1ec-3fb4ee53ab77"
+      }
+    ],
+    "edges": [
+      [
+        "ac8b1293-6992-431d-bdf4-7f7be59a6e10",
+        "d25fb13d-aebd-446c-aed8-703ba4eb0d39"
+      ],
+      [
+        "5cedba8d-19d3-439a-9577-a8f3d1f11434",
+        "ac8b1293-6992-431d-bdf4-7f7be59a6e10"
+      ],
+      [
+        "c470372d-046d-4456-9a4c-e31d30d1ed19",
+        "5cedba8d-19d3-439a-9577-a8f3d1f11434"
+      ],
+      [
+        "06d79dc3-21ca-4380-b759-86f31aa40e79",
+        "00cd9275-dc9c-4b86-9ee4-21d76d4f4ec9"
+      ],
+      [
+        "9ba61a94-9581-4a0a-9e90-e5575d7ab8ab",
+        "04db9e8f-698d-45ff-b539-673e890a6306"
+      ],
+      [
+        "00cd9275-dc9c-4b86-9ee4-21d76d4f4ec9",
+        "db54e21b-327d-4e19-b284-d75d468052f4"
+      ],
+      [
+        "db54e21b-327d-4e19-b284-d75d468052f4",
+        "01700e88-86cd-42dd-b60d-d24d89f11241"
+      ],
+      [
+        "561ba26c-a04c-4802-ab3e-0f20a8801ff7",
+        "94cd0bd6-3f51-4b86-be12-ca1e87e07917"
+      ],
+      [
+        "561ba26c-a04c-4802-ab3e-0f20a8801ff7",
+        "06d79dc3-21ca-4380-b759-86f31aa40e79"
+      ],
+      [
+        "561ba26c-a04c-4802-ab3e-0f20a8801ff7",
+        "9ba61a94-9581-4a0a-9e90-e5575d7ab8ab"
+      ],
+      [
+        "04db9e8f-698d-45ff-b539-673e890a6306",
+        "c470372d-046d-4456-9a4c-e31d30d1ed19"
+      ],
+      [
+        "94cd0bd6-3f51-4b86-be12-ca1e87e07917",
+        "6f5068d9-f081-421b-a7a5-3c85d52f05c1"
+      ],
+      [
+        "01700e88-86cd-42dd-b60d-d24d89f11241",
+        "3fa5bc45-db83-4999-b1ec-3fb4ee53ab77"
+      ],
+      [
+        "6f5068d9-f081-421b-a7a5-3c85d52f05c1",
+        "06d79dc3-21ca-4380-b759-86f31aa40e79"
+      ],
+      [
+        "6f5068d9-f081-421b-a7a5-3c85d52f05c1",
+        "9ba61a94-9581-4a0a-9e90-e5575d7ab8ab"
+      ],
+      [
+        "3fa5bc45-db83-4999-b1ec-3fb4ee53ab77",
+        "d25fb13d-aebd-446c-aed8-703ba4eb0d39"
+      ]
+    ]
+  },
+  "stepsbystage": {
+    "init": [
+      {
+        "_nodeid": "561ba26c-a04c-4802-ab3e-0f20a8801ff7"
+      }
+    ],
+    "grid": [
+      {
+        "_nodeid": "6f5068d9-f081-421b-a7a5-3c85d52f05c1"
+      }
+    ],
+    "subchain": [
+      {
+        "madevent": [
+          {
+            "_nodeid": "00cd9275-dc9c-4b86-9ee4-21d76d4f4ec9"
+          }
+        ],
+        "analysis": [
+          {
+            "_nodeid": "3fa5bc45-db83-4999-b1ec-3fb4ee53ab77"
+          }
+        ],
+        "_offset": "/subchain/0",
+        "init": [
+          {
+            "_nodeid": "06d79dc3-21ca-4380-b759-86f31aa40e79"
+          }
+        ],
+        "delphes": [
+          {
+            "_nodeid": "01700e88-86cd-42dd-b60d-d24d89f11241"
+          }
+        ],
+        "pythia": [
+          {
+            "_nodeid": "db54e21b-327d-4e19-b284-d75d468052f4"
+          }
+        ]
+      },
+      {
+        "madevent": [
+          {
+            "_nodeid": "04db9e8f-698d-45ff-b539-673e890a6306"
+          }
+        ],
+        "analysis": [
+          {
+            "_nodeid": "ac8b1293-6992-431d-bdf4-7f7be59a6e10"
+          }
+        ],
+        "_offset": "/subchain/1",
+        "init": [
+          {
+            "_nodeid": "9ba61a94-9581-4a0a-9e90-e5575d7ab8ab"
+          }
+        ],
+        "delphes": [
+          {
+            "_nodeid": "5cedba8d-19d3-439a-9577-a8f3d1f11434"
+          }
+        ],
+        "pythia": [
+          {
+            "_nodeid": "c470372d-046d-4456-9a4c-e31d30d1ed19"
+          }
+        ]
+      }
+    ],
+    "prepare": [
+      {
+        "_nodeid": "94cd0bd6-3f51-4b86-be12-ca1e87e07917"
+      }
+    ],
+    "rootmerge": [
+      {
+        "_nodeid": "d25fb13d-aebd-446c-aed8-703ba4eb0d39"
+      }
+    ]
+  },
+  "bookkeeping": {
+    "_meta": {
+      "rules": [
+        "7ada2e01-44d8-48f7-a12d-e478656da4a5",
+        "27e9be9d-1a82-4760-9fe6-3cadc5cf95ee",
+        "7e33c3af-6e2e-4869-afca-6d9f61c7cda0",
+        "1aa1a7ce-b968-4230-973f-223da0484ca6",
+        "d0c8d385-d6b1-4f7f-972b-f98e55e89bac"
+      ],
+      "steps": [
+        "561ba26c-a04c-4802-ab3e-0f20a8801ff7",
+        "94cd0bd6-3f51-4b86-be12-ca1e87e07917",
+        "6f5068d9-f081-421b-a7a5-3c85d52f05c1",
+        "d25fb13d-aebd-446c-aed8-703ba4eb0d39"
+      ]
+    },
+    "subchain": {
+      "1": {
+        "_meta": {
+          "rules": [
+            "91d826f9-db88-49d3-ba74-8d61e6938651",
+            "9050daf2-2966-48eb-b2db-c9162b54b0f5",
+            "5dcdb920-8b0b-4605-aed0-64dd92af7868",
+            "329c3809-3038-4455-a378-6ebfc8082b1a",
+            "68254d8a-dd1a-4dc1-8fa4-dab33dc6a034"
+          ],
+          "steps": [
+            "9ba61a94-9581-4a0a-9e90-e5575d7ab8ab",
+            "04db9e8f-698d-45ff-b539-673e890a6306",
+            "c470372d-046d-4456-9a4c-e31d30d1ed19",
+            "5cedba8d-19d3-439a-9577-a8f3d1f11434",
+            "ac8b1293-6992-431d-bdf4-7f7be59a6e10"
+          ]
+        }
+      },
+      "0": {
+        "_meta": {
+          "rules": [
+            "f38b27d3-f38c-466f-87de-3437d161e517",
+            "d6faf1b1-ed91-4ba6-a5a4-3f8e56a8715e",
+            "9f040da6-2c74-4c3e-be47-a89acb220948",
+            "db1f1d01-dadb-437a-aa11-6eb5f024f8e7",
+            "bfd97619-2b9a-4e66-a2a8-7df7051530b2"
+          ],
+          "steps": [
+            "06d79dc3-21ca-4380-b759-86f31aa40e79",
+            "00cd9275-dc9c-4b86-9ee4-21d76d4f4ec9",
+            "db54e21b-327d-4e19-b284-d75d468052f4",
+            "01700e88-86cd-42dd-b60d-d24d89f11241",
+            "3fa5bc45-db83-4999-b1ec-3fb4ee53ab77"
+          ]
+        }
+      }
+    }
+  }
+}

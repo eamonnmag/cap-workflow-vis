@@ -163,17 +163,19 @@ var analysis_workflow_vis = (function () {
         });
 
         graph.groups = [];
+        var _group_count = Object.keys(groups).length;
         for (var group_idx in groups) {
             var _filtered_leaves = groups[group_idx].leaves.filter(function (d) {
                 return d != undefined;
             });
             var _group_def = {'leaves': _filtered_leaves, 'groups': [], 'color': 'white'};
 
-            if (group_idx == 0) {
-                _group_def['groups'].push(1);
-            } else {
+            if (_group_count > 1)
+                _group_def['groups'] = d3.range(group_idx+1,_group_count);
+
+            if (group_idx > 0)
                 _group_def['color'] = '#f6f7f6';
-            }
+
             graph.groups.push(_group_def);
         }
 
