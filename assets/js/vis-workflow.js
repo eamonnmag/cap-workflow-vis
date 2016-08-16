@@ -5,14 +5,11 @@
  */
 var analysis_workflow_vis = (function () {
 
-    var svg;
-    var cola_d3;
     var graphs = [];
     var dependency_map = {};
     var groups = {};
     var graph = {'nodes': [], 'links': [], 'groups': []};
     var node_count = 0, stage_count = 0;
-    var color = d3.scale.ordinal().range(["#f6f7f6"]);
     var last_nodes = {
         'output': {'dependencies': null, 'node': null},
         'process': {'dependencies': null, 'node': null}
@@ -240,7 +237,7 @@ var analysis_workflow_vis = (function () {
 
             var zoom = d3.behavior.zoom().scaleExtent([.3, 5]);
 
-            svg = d3.select(placement)
+            var svg = d3.select(placement)
                 .append('svg')
                 .attr({
                     'width': options.width,
@@ -274,7 +271,7 @@ var analysis_workflow_vis = (function () {
                 g.padding = 0.001;
             });
 
-            cola_d3 = cola.d3adaptor()
+            var cola_d3 = cola.d3adaptor()
                 .linkDistance(100)
                 .size([options.width, options.height])
                 .nodes(graph.nodes)
