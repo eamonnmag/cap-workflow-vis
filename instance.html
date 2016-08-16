@@ -54,6 +54,19 @@
 
         }
 
+        rect.success {
+            fill: #27ae60;
+            color: white;
+        }
+
+        rect.failed {
+            fill: #e74c3c;
+        }
+
+        rect.waiting {
+            fill: #ecf0f1;
+        }
+
         .node-type {
             font-size: 9px;
             fill: #7f8c8d;
@@ -123,24 +136,30 @@
 <script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.5.16/d3.min.js" type="text/javascript"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/d3-tip/0.6.7/d3-tip.min.js" type="text/javascript"></script>
 <script src="assets/lib/cola.min.js" type="text/javascript"></script>
-<script src="assets/js/vis-workflow.js"></script>
+<script src="assets/js/cap-workflow-vis-instance.js"></script>
+<script src="assets/js/cap-workflow-vis.js"></script>
 
 <script type="text/javascript">
-//    d3.json('data/template/yadage_susy.json', function (data) {
-//        console.log(data);
-//        analysis_workflow_vis.render('#workflow1', data, {width: 900, height: 800})
-//    });
+    //    d3.json('data/template/yadage_susy.json', function (data) {
+    //        console.log(data);
+    //        analysis_workflow_vis.render('#workflow1', data, {width: 900, height: 800})
+    //    });
 
 
-    d3.json('data/template/yadage_template.json', function (data) {
+    d3.json('data/instance/yadage_instance.json', function (data) {
         console.log(data);
-        analysis_workflow_vis.render('#workflow1', data, {width: 900, height: 800})
+        cap_workflow_vis.render('#workflow1', data, {width: 900, height: 800})
     });
 
-//    d3.json('data/template/yadage_delphes_template.json', function (data) {
+//    d3.json('data/instance/yadage_instance.json', function (data) {
 //        console.log(data);
 //        analysis_workflow_vis.render('#workflow1', data, {width: 900, height: 800})
 //    });
+
+//        d3.json('data/template/yadage_delphes_template.json', function (data) {
+//            console.log(data);
+//            analysis_workflow_vis.render('#workflow1', data, {width: 900, height: 800})
+//        });
 
 </script>
 </html>

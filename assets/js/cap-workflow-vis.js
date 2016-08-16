@@ -3,190 +3,19 @@
  * using an interactive graph layout.
  * @author Eamonn Maguire <eamonnmag@gmail.com>
  */
-var analysis_workflow_vis = (function () {
-
-    var graphs = [];
-    var dependency_map = {};
-    var groups = {};
-    var graph = {'nodes': [], 'links': [], 'groups': []};
-    var node_count = 0, stage_count = 0;
-    var last_nodes = {
-        'output': {'dependencies': null, 'node': null},
-        'process': {'dependencies': null, 'node': null}
-    };
-
-
-    /**
-     *
-     * @param id
-     * @param stage
-     * @param type
-     * @param name
-     * @param value
-     */
-    function add_node(id, stage, type, name, value) {
-        var _node = {
-            'id': id,
-            'type': type,
-            'name': name,
-            'value': value
-        };
-
-        graph.nodes.push(_node);
-
-        if (!(stage in dependency_map[stage_count])) {
-            dependency_map[stage_count][stage] = {'id': id, 'outputs': {}};
-        }
-
-        if (type in last_nodes) {
-            last_nodes[type]['node'] = _node;
-            last_nodes[type]['dependencies'] = dependency_map[stage_count][stage];
-        }
-
-        groups[stage_count].leaves.push(id);
-
-        if (dependency_map[stage_count][stage]) {
-            graph.links.push({'source': dependency_map[stage_count][stage].id, 'target': node_count});
-            dependency_map[stage_count][stage].outputs[name] = {
-                'id': id,
-                'name': value
-            };
-        }
-    }
-
-    /**
-     *
-     * @param stages
-     * @param init_node
-     */
-    function process_stages(stages, init_node) {
-        dependency_map[stage_count] = {};
-
-        if (!(stage_count in groups)) {
-            groups[stage_count] = {'leaves': []};
-        }
-
-
-        if (init_node) {
-            dependency_map[stage_count]['init'] = init_node.dependencies;
-            init_node.node.name = 'init';
-            init_node.node.type = 'init';
-            groups[stage_count].leaves.push(init_node.node.id);
-        } else {
-            add_node(node_count, 'init', 'init', 'init', {});
-            node_count += 1;
-        }
-
-
-        stages.forEach(function (stage) {
-
-            add_node(node_count, stage.name, 'process', stage.name, stage);
-            node_count += 1;
-
-            var scheduler = stage.scheduler;
-
-            if ('step' in scheduler) {
-                var step = scheduler.step;
-
-                // push outputs and link them to the process.
-                if ('publisher' in step) {
-                    for (var output_key in step.publisher.outputmap) {
-                        add_node(node_count, stage.name, 'output', output_key);
-                        node_count += 1;
-                    }
-                }
-            }
-
-            if ('parameters' in stage.scheduler) {
-                stage.scheduler.parameters.forEach(function (parameter) {
-                    var _parameter_value = parameter.value;
-                    var _stage = _parameter_value.stages;
-
-                    if (_stage === 'init') {
-                        if (!(_parameter_value.output in dependency_map[stage_count]['init'].outputs)) {
-                            add_node(node_count, 'init', 'output',
-                                _parameter_value.output, _parameter_value.output);
-
-                            graph.links.push({
-                                'source': node_count,
-                                'target': dependency_map[stage_count][stage.name].id
-                            });
-
-                            node_count += 1;
-                        }
-                    }
-
-                    else if (_stage in dependency_map[stage_count]) {
-                        var output_node = dependency_map[stage_count][_stage]
-                            .outputs[_parameter_value.output];
-
-                        if (output_node) {
-                            graph.links.push({
-                                'source': output_node.id,
-                                'target': dependency_map[stage_count][stage.name].id
-                            })
-                        }
-                    } else {
-                        // we have a sub chain
-                        if (_stage && _stage.indexOf("[*]") !== -1) {
-
-                            var last_dependency = dependency_map[stage_count + 1];
-
-                            for (var dependency in last_dependency) {
-                                if (last_dependency[dependency].outputs
-                                    && _parameter_value.output in last_dependency[dependency].outputs) {
-                                    var _last_output_id = last_dependency[dependency]
-                                        .outputs[_parameter_value.output].id;
-                                }
-                            }
-
-                            if (_last_output_id !== undefined)
-                                graph.links.push({
-                                    'source': _last_output_id,
-                                    'target': dependency_map[stage_count][stage.name].id
-                                })
-                        }
-                    }
-                });
-            }
-
-            if ('workflow' in scheduler) {
-                stage_count += 1;
-                process_stages(scheduler.workflow.stages, last_nodes['process']);
-                stage_count -= 1;
-            }
-
-
-        });
-
-        graph.groups = [];
-        var _group_count = Object.keys(groups).length;
-        for (var group_idx in groups) {
-            var _filtered_leaves = groups[group_idx].leaves.filter(function (d) {
-                return d != undefined;
-            });
-            var _group_def = {'leaves': _filtered_leaves, 'groups': [], 'color': 'white'};
-
-            if (_group_count > 1)
-                _group_def['groups'] = d3.range(group_idx+1,_group_count);
-
-            if (group_idx > 0)
-                _group_def['color'] = '#f6f7f6';
-
-            graph.groups.push(_group_def);
-        }
-
-        graphs.push(graph);
-    }
+var cap_workflow_vis = (function () {
 
     /**
      *
      * @param data
      * @returns {Array}
      */
-    function process_data(data) {
-        process_stages(data.stages);
-        return graphs;
+    function generateGraph(data) {
+        if ('dag' in data) {
+            return cap_workflow_vis_instance.generateGraph(data)
+        } else {
+            return cap_workflow_vis_template.generateGraph(data.stages);
+        }
     }
 
     /**
@@ -203,6 +32,27 @@ var analysis_workflow_vis = (function () {
         return b.measureText(text).width;
     }
 
+    function generateTooltip() {
+        return d3.tip().attr('class', 'd3-tip')
+            .html(function (d) {
+                if (d.type === 'output') {
+                    return d.name
+                }
+                var html;
+                if (d.info && d.info.scheduler.step) {
+                    var cmd = d.info.scheduler.step.process.cmd;
+                    for (var parameter_type in d.info.parameters) {
+                        cmd = cmd.replace('{' + parameter_type + '}',
+                            d.info.parameters[parameter_type]);
+                    }
+                }
+
+                html = '<span>' + d.name + '</span><br/>';
+
+                return html;
+            });
+    }
+
     return {
         /**
          * Renders a workflow visualization given a data object
@@ -214,26 +64,7 @@ var analysis_workflow_vis = (function () {
          */
         render: function (placement, data, options) {
 
-            var tip = d3.tip().attr('class', 'd3-tip')
-                .html(function (d) {
-                    if (d.type === 'output') {
-                        return d.name
-                    }
-
-                    var html;
-
-                    if (d.info && d.info.scheduler.step) {
-                        var cmd = d.info.scheduler.step.process.cmd;
-                        for (var parameter_type in d.info.parameters) {
-                            cmd = cmd.replace('{' + parameter_type + '}',
-                                d.info.parameters[parameter_type]);
-                        }
-                    }
-
-                    html = '<span>' + d.name + '</span><br/>';
-
-                    return html;
-                });
+            var tip = generateTooltip();
 
             var zoom = d3.behavior.zoom().scaleExtent([.3, 5]);
 
@@ -258,8 +89,7 @@ var analysis_workflow_vis = (function () {
 
             var vis = svg.append('g');
 
-            var graphs = process_data(data);
-            var graph = graphs[0];
+            var graph = generateGraph(data);
 
             graph.nodes.forEach(function (v) {
                 v.width = (v.type === 'output' ? 90 : v.type === 'init' ? 70 : 150);
@@ -319,7 +149,7 @@ var analysis_workflow_vis = (function () {
 
             node.append("rect")
                 .attr("class", function (d) {
-                    return d.type;
+                    return d.type + " " + (d.state ? d.state.toLowerCase() : "");
                 })
                 .attr('rx', function (d) {
                     return d.type == 'process' ? 15 : d.type == 'init' ? 30 : 2;
