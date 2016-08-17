@@ -112,18 +112,19 @@ var cap_workflow_vis = (function () {
         });
 
         var cola_d3 = cola.d3adaptor()
-            .linkDistance(110)
+            .linkDistance(120)
             .size([options.width, options.height])
             .nodes(graph.nodes)
             .links(graph.links)
             .groups(graph.groups)
-            .flowLayout("y", 110)
+            .flowLayout("y", 120)
             .avoidOverlaps(true)
-            .start(25, 10, 100);
+            .start(25, 20, 100);
 
-        var group = vis.selectAll(".group")
-            .data(graph.groups)
-            .enter().append("rect")
+
+        var group_container = vis.selectAll(".group-container").data(graph.groups).enter().append("g").attr('class', 'group-container');
+
+        var group = group_container.append("rect")
             .attr("rx", 8).attr("ry", 8)
             .attr("class", 'group')
             .style("stroke", '#2c3e50')
@@ -133,6 +134,9 @@ var cap_workflow_vis = (function () {
             })
             .call(cola_d3.drag);
 
+        group_container.append("text").text(function(d) {
+            return d.name ? d.name : '';
+        }).attr({'x': 10, 'y': -10});
 
         var link = vis.selectAll(".link")
             .data(graph.links)
@@ -230,12 +234,11 @@ var cap_workflow_vis = (function () {
                     return d.target.y;
                 });
 
-            group.attr("x", function (d) {
-                    return d.bounds.x;
-                })
-                .attr("y", function (d) {
-                    return d.bounds.y;
-                })
+            group_container.attr('transform', function(d) {
+               return 'translate(' + d.bounds.x + ',' + d.bounds.y + ')';
+            });
+
+            group
                 .attr("width", function (d) {
                     return d.bounds.width();
                 })

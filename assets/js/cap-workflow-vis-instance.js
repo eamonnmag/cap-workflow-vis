@@ -14,11 +14,11 @@ var cap_workflow_vis_instance = (function () {
      * @param data
      * @param parent - root to attach results to.
      */
-    function processGroups(data, parent) {
+    function processGroups(data, parent, group_name) {
 
         var _group_def = parent;
         if (data['_meta']) {
-            _group_def = {'leaves': [], 'groups': [], 'subgroups': [], 'id': group_count};
+            _group_def = {'leaves': [], 'groups': [], 'subgroups': [], 'id': group_count, 'name': group_name};
             parent.subgroups.push(_group_def);
             parent.groups.push(group_count);
 
@@ -31,7 +31,8 @@ var cap_workflow_vis_instance = (function () {
             if (key !== '_meta') {
                 for (var _sub_key in data[key]) {
                     var parent = _group_def;
-                    processGroups(data[key][_sub_key], parent);
+
+                    processGroups(data[key][_sub_key], parent, key);
                 }
             }
         }
