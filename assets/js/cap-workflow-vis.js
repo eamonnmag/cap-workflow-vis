@@ -11,10 +11,15 @@ var cap_workflow_vis = (function () {
      * @returns {Array}
      */
     function generateGraph(data) {
-        if ('dag' in data) {
-            return cap_workflow_vis_instance.generateGraph(data)
-        } else {
-            return cap_workflow_vis_template.generateGraph(data.stages);
+        try {
+            if ('dag' in data) {
+                return cap_workflow_vis_instance.generateGraph(data)
+            } else {
+                return cap_workflow_vis_template.generateGraph(data.stages);
+            }
+        } catch (reference_error) {
+            console.error("Not able to find an appropriate handler for this data. " +
+                "Please ensure you have the instance and template handlers installed.")
         }
     }
 

@@ -1,6 +1,5 @@
 /**
- * Provides the mechanism to process yandage workflow templates
- * using an interactive graph layout.
+ * Provides the mechanism to generate the graph layout for yandage workflow templates
  * @author Eamonn Maguire <eamonnmag@gmail.com>
  */
 var cap_workflow_vis_template = (function () {

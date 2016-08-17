@@ -1,0 +1,905 @@
+{
+  "rules": [],
+  "applied": [
+    {
+      "type": "offset",
+      "id": "a1500870-4ea4-4edf-8b91-919879cd575f",
+      "rule": {
+        "info": "",
+        "step": {
+          "attributes": {
+            "input": [
+              1,
+              2,
+              3
+            ]
+          },
+          "prepublished": {
+            "input": [
+              1,
+              2,
+              3
+            ]
+          },
+          "type": "initstep",
+          "name": "init",
+          "inputs": []
+        },
+        "dependencies": null,
+        "name": "init",
+        "context": {},
+        "type": "initStage"
+      },
+      "offset": ""
+    },
+    {
+      "type": "offset",
+      "id": "fd39095a-455b-45d0-92bc-b52ee0609c78",
+      "rule": {
+        "info": {
+          "scheduler_type": "multistep-stage",
+          "scatter": {
+            "method": "zip",
+            "parameters": [
+              "inputpar"
+            ]
+          },
+          "parameters": [
+            {
+              "value": {
+                "output": "input",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "inputpar"
+            }
+          ],
+          "workflow": {
+            "stages": [
+              {
+                "dependencies": {
+                  "dependency_type": "jsonpath_ready",
+                  "expressions": [
+                    "init"
+                  ]
+                },
+                "name": "stage1",
+                "scheduler": {
+                  "step": {
+                    "process": {
+                      "cmd": "echo hello > {input}",
+                      "process_type": "string-interpolated-cmd"
+                    },
+                    "environment": {
+                      "environment_type": "localproc-env"
+                    },
+                    "publisher": {
+                      "publisher_type": "constant-pub",
+                      "publish": {
+                        "outputA": "output"
+                      }
+                    }
+                  },
+                  "scheduler_type": "singlestep-stage",
+                  "parameters": [
+                    {
+                      "value": {
+                        "output": "inputpar",
+                        "stages": "init",
+                        "unwrap": true
+                      },
+                      "key": "input"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": []
+        },
+        "type": "jsonStage",
+        "name": "map",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/testing/nested"
+          ],
+          "readonly": [],
+          "nametag": "nested"
+        }
+      },
+      "offset": ""
+    },
+    {
+      "type": "offset",
+      "id": "964eaac9-e5f1-42c7-ad1f-a810a0af5797",
+      "rule": {
+        "info": "",
+        "step": {
+          "attributes": {
+            "inputpar": 3
+          },
+          "prepublished": {
+            "inputpar": 3
+          },
+          "type": "initstep",
+          "name": "init map_2",
+          "inputs": [
+            {
+              "stepid": "9ccbe43d-0e65-48e1-8d4e-3651572246a7",
+              "pointer_path": "/input/2"
+            }
+          ]
+        },
+        "dependencies": null,
+        "name": "init",
+        "context": {},
+        "type": "initStage"
+      },
+      "offset": "/map/2"
+    },
+    {
+      "type": "offset",
+      "id": "7f7f53dd-0b9a-417f-ad49-f8aaa5755bcf",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "echo hello > {input}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "environment": {
+              "environment_type": "localproc-env"
+            },
+            "publisher": {
+              "publisher_type": "constant-pub",
+              "publish": {
+                "outputA": "output"
+              }
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": {
+                "output": "inputpar",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "input"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "init"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "stage1",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/testing/nested/map_2"
+          ],
+          "readonly": [
+            "/Users/lukas/Code/yadagedev/testing/nested"
+          ],
+          "nametag": "map_2"
+        }
+      },
+      "offset": "/map/2"
+    },
+    {
+      "type": "offset",
+      "id": "bc63e8ab-278e-49d9-a6c5-5fe92f06ac56",
+      "rule": {
+        "info": "",
+        "step": {
+          "attributes": {
+            "inputpar": 2
+          },
+          "prepublished": {
+            "inputpar": 2
+          },
+          "type": "initstep",
+          "name": "init map_1",
+          "inputs": [
+            {
+              "stepid": "9ccbe43d-0e65-48e1-8d4e-3651572246a7",
+              "pointer_path": "/input/1"
+            }
+          ]
+        },
+        "dependencies": null,
+        "name": "init",
+        "context": {},
+        "type": "initStage"
+      },
+      "offset": "/map/1"
+    },
+    {
+      "type": "offset",
+      "id": "1e21d44c-5437-4f4f-91eb-96a8d522079a",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "echo hello > {input}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "environment": {
+              "environment_type": "localproc-env"
+            },
+            "publisher": {
+              "publisher_type": "constant-pub",
+              "publish": {
+                "outputA": "output"
+              }
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": {
+                "output": "inputpar",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "input"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "init"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "stage1",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/testing/nested/map_1"
+          ],
+          "readonly": [
+            "/Users/lukas/Code/yadagedev/testing/nested"
+          ],
+          "nametag": "map_1"
+        }
+      },
+      "offset": "/map/1"
+    },
+    {
+      "type": "offset",
+      "id": "0958a571-af4c-4a8a-913b-a05b17520673",
+      "rule": {
+        "info": "",
+        "step": {
+          "attributes": {
+            "inputpar": 1
+          },
+          "prepublished": {
+            "inputpar": 1
+          },
+          "type": "initstep",
+          "name": "init map_0",
+          "inputs": [
+            {
+              "stepid": "9ccbe43d-0e65-48e1-8d4e-3651572246a7",
+              "pointer_path": "/input/0"
+            }
+          ]
+        },
+        "dependencies": null,
+        "name": "init",
+        "context": {},
+        "type": "initStage"
+      },
+      "offset": "/map/0"
+    },
+    {
+      "type": "offset",
+      "id": "207f3a12-9e87-40ed-9d43-3f3022adbee0",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "echo hello > {input}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "environment": {
+              "environment_type": "localproc-env"
+            },
+            "publisher": {
+              "publisher_type": "constant-pub",
+              "publish": {
+                "outputA": "output"
+              }
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": {
+                "output": "inputpar",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "input"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "init"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "stage1",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/testing/nested/map_0"
+          ],
+          "readonly": [
+            "/Users/lukas/Code/yadagedev/testing/nested"
+          ],
+          "nametag": "map_0"
+        }
+      },
+      "offset": "/map/0"
+    },
+    {
+      "type": "offset",
+      "id": "9d9f258c-ab3d-417b-90e8-5d436818c8d9",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "echo hello > {input}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "environment": {
+              "environment_type": "localproc-env"
+            },
+            "publisher": {
+              "publisher_type": "constant-pub",
+              "publish": {
+                "outputA": "output"
+              }
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": {
+                "output": "outputA",
+                "stages": "map.[*].stage1"
+              },
+              "key": "input"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "map"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "reduce",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/testing/nested"
+          ],
+          "readonly": [],
+          "nametag": "nested"
+        }
+      },
+      "offset": ""
+    }
+  ],
+  "dag": {
+    "nodes": [
+      {
+        "task": {
+          "attributes": {
+            "inputpar": 1
+          },
+          "prepublished": {
+            "inputpar": 1
+          },
+          "type": "initstep",
+          "name": "init map_0",
+          "inputs": [
+            {
+              "stepid": "9ccbe43d-0e65-48e1-8d4e-3651572246a7",
+              "pointer_path": "/input/0"
+            }
+          ]
+        },
+        "name": "init map_0",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471360259.181357,
+          "ready by": 1471360259.341572,
+          "submit": 1471360259.339892
+        },
+        "id": "f1a36d0f-16cb-4ff9-a33e-a55d5ab05af0"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "c3971e1e-3831-48e6-a7c3-103c5e5e1e2d",
+              "pointer_path": "/outputA"
+            },
+            {
+              "stepid": "1f9610ca-8de9-4ae3-abc6-4ad0a4bd5051",
+              "pointer_path": "/outputA"
+            },
+            {
+              "stepid": "252ae7c2-98d1-4e3f-94e2-1b0f1a4c7f6d",
+              "pointer_path": "/outputA"
+            }
+          ],
+          "name": "reduce",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/testing/nested/reduce"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/testing/nested"
+            ],
+            "nametag": "reduce"
+          },
+          "attributes": {
+            "input": [
+              "output",
+              "output",
+              "output"
+            ]
+          },
+          "prepublished": {
+            "outputA": "output"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "echo hello > {input}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "environment": {
+              "environment_type": "localproc-env"
+            },
+            "publisher": {
+              "publisher_type": "constant-pub",
+              "publish": {
+                "outputA": "output"
+              }
+            }
+          }
+        },
+        "name": "reduce",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471360259.310943,
+          "ready by": 1471360259.458102,
+          "submit": 1471360259.435693
+        },
+        "id": "a82b53ae-722a-41b5-9cd3-1968a03e284a"
+      },
+      {
+        "task": {
+          "attributes": {
+            "inputpar": 2
+          },
+          "prepublished": {
+            "inputpar": 2
+          },
+          "type": "initstep",
+          "name": "init map_1",
+          "inputs": [
+            {
+              "stepid": "9ccbe43d-0e65-48e1-8d4e-3651572246a7",
+              "pointer_path": "/input/1"
+            }
+          ]
+        },
+        "name": "init map_1",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471360259.117662,
+          "ready by": 1471360259.341019,
+          "submit": 1471360259.338371
+        },
+        "id": "535cf80d-5fb4-4b71-8d5c-e18e7187ddfb"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "39a3c828-c5d4-4412-9c3e-339d51bba246",
+              "pointer_path": "/inputpar"
+            }
+          ],
+          "name": "stage1",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/testing/nested/map_2/stage1"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/testing/nested",
+              "/Users/lukas/Code/yadagedev/testing/nested/map_2"
+            ],
+            "nametag": "stage1"
+          },
+          "attributes": {
+            "input": 3
+          },
+          "prepublished": {
+            "outputA": "output"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "echo hello > {input}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "environment": {
+              "environment_type": "localproc-env"
+            },
+            "publisher": {
+              "publisher_type": "constant-pub",
+              "publish": {
+                "outputA": "output"
+              }
+            }
+          }
+        },
+        "name": "stage1",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471360259.117163,
+          "ready by": 1471360259.434639,
+          "submit": 1471360259.366976
+        },
+        "id": "252ae7c2-98d1-4e3f-94e2-1b0f1a4c7f6d"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "535cf80d-5fb4-4b71-8d5c-e18e7187ddfb",
+              "pointer_path": "/inputpar"
+            }
+          ],
+          "name": "stage1",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/testing/nested/map_1/stage1"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/testing/nested",
+              "/Users/lukas/Code/yadagedev/testing/nested/map_1"
+            ],
+            "nametag": "stage1"
+          },
+          "attributes": {
+            "input": 2
+          },
+          "prepublished": {
+            "outputA": "output"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "echo hello > {input}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "environment": {
+              "environment_type": "localproc-env"
+            },
+            "publisher": {
+              "publisher_type": "constant-pub",
+              "publish": {
+                "outputA": "output"
+              }
+            }
+          }
+        },
+        "name": "stage1",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471360259.180617,
+          "ready by": 1471360259.434827,
+          "submit": 1471360259.367642
+        },
+        "id": "1f9610ca-8de9-4ae3-abc6-4ad0a4bd5051"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "f1a36d0f-16cb-4ff9-a33e-a55d5ab05af0",
+              "pointer_path": "/inputpar"
+            }
+          ],
+          "name": "stage1",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/testing/nested/map_0/stage1"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/testing/nested",
+              "/Users/lukas/Code/yadagedev/testing/nested/map_0"
+            ],
+            "nametag": "stage1"
+          },
+          "attributes": {
+            "input": 1
+          },
+          "prepublished": {
+            "outputA": "output"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "echo hello > {input}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "environment": {
+              "environment_type": "localproc-env"
+            },
+            "publisher": {
+              "publisher_type": "constant-pub",
+              "publish": {
+                "outputA": "output"
+              }
+            }
+          }
+        },
+        "name": "stage1",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471360259.241116,
+          "ready by": 1471360259.434174,
+          "submit": 1471360259.368439
+        },
+        "id": "c3971e1e-3831-48e6-a7c3-103c5e5e1e2d"
+      },
+      {
+        "task": {
+          "attributes": {
+            "input": [
+              1,
+              2,
+              3
+            ]
+          },
+          "prepublished": {
+            "input": [
+              1,
+              2,
+              3
+            ]
+          },
+          "type": "initstep",
+          "name": "init",
+          "inputs": []
+        },
+        "name": "init",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471360259.006856,
+          "ready by": 1471360259.335473,
+          "submit": 1471360259.311726
+        },
+        "id": "9ccbe43d-0e65-48e1-8d4e-3651572246a7"
+      },
+      {
+        "task": {
+          "attributes": {
+            "inputpar": 3
+          },
+          "prepublished": {
+            "inputpar": 3
+          },
+          "type": "initstep",
+          "name": "init map_2",
+          "inputs": [
+            {
+              "stepid": "9ccbe43d-0e65-48e1-8d4e-3651572246a7",
+              "pointer_path": "/input/2"
+            }
+          ]
+        },
+        "name": "init map_2",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471360259.061496,
+          "ready by": 1471360259.340682,
+          "submit": 1471360259.336771
+        },
+        "id": "39a3c828-c5d4-4412-9c3e-339d51bba246"
+      }
+    ],
+    "edges": [
+      [
+        "f1a36d0f-16cb-4ff9-a33e-a55d5ab05af0",
+        "c3971e1e-3831-48e6-a7c3-103c5e5e1e2d"
+      ],
+      [
+        "535cf80d-5fb4-4b71-8d5c-e18e7187ddfb",
+        "1f9610ca-8de9-4ae3-abc6-4ad0a4bd5051"
+      ],
+      [
+        "252ae7c2-98d1-4e3f-94e2-1b0f1a4c7f6d",
+        "a82b53ae-722a-41b5-9cd3-1968a03e284a"
+      ],
+      [
+        "1f9610ca-8de9-4ae3-abc6-4ad0a4bd5051",
+        "a82b53ae-722a-41b5-9cd3-1968a03e284a"
+      ],
+      [
+        "c3971e1e-3831-48e6-a7c3-103c5e5e1e2d",
+        "a82b53ae-722a-41b5-9cd3-1968a03e284a"
+      ],
+      [
+        "9ccbe43d-0e65-48e1-8d4e-3651572246a7",
+        "535cf80d-5fb4-4b71-8d5c-e18e7187ddfb"
+      ],
+      [
+        "9ccbe43d-0e65-48e1-8d4e-3651572246a7",
+        "39a3c828-c5d4-4412-9c3e-339d51bba246"
+      ],
+      [
+        "9ccbe43d-0e65-48e1-8d4e-3651572246a7",
+        "f1a36d0f-16cb-4ff9-a33e-a55d5ab05af0"
+      ],
+      [
+        "39a3c828-c5d4-4412-9c3e-339d51bba246",
+        "252ae7c2-98d1-4e3f-94e2-1b0f1a4c7f6d"
+      ]
+    ]
+  },
+  "stepsbystage": {
+    "map": [
+      {
+        "_offset": "/map/0",
+        "init": [
+          {
+            "_nodeid": "f1a36d0f-16cb-4ff9-a33e-a55d5ab05af0"
+          }
+        ],
+        "stage1": [
+          {
+            "_nodeid": "c3971e1e-3831-48e6-a7c3-103c5e5e1e2d"
+          }
+        ]
+      },
+      {
+        "_offset": "/map/1",
+        "init": [
+          {
+            "_nodeid": "535cf80d-5fb4-4b71-8d5c-e18e7187ddfb"
+          }
+        ],
+        "stage1": [
+          {
+            "_nodeid": "1f9610ca-8de9-4ae3-abc6-4ad0a4bd5051"
+          }
+        ]
+      },
+      {
+        "_offset": "/map/2",
+        "init": [
+          {
+            "_nodeid": "39a3c828-c5d4-4412-9c3e-339d51bba246"
+          }
+        ],
+        "stage1": [
+          {
+            "_nodeid": "252ae7c2-98d1-4e3f-94e2-1b0f1a4c7f6d"
+          }
+        ]
+      }
+    ],
+    "init": [
+      {
+        "_nodeid": "9ccbe43d-0e65-48e1-8d4e-3651572246a7"
+      }
+    ],
+    "reduce": [
+      {
+        "_nodeid": "a82b53ae-722a-41b5-9cd3-1968a03e284a"
+      }
+    ]
+  },
+  "bookkeeping": {
+    "map": {
+      "1": {
+        "_meta": {
+          "rules": [
+            "1e21d44c-5437-4f4f-91eb-96a8d522079a",
+            "bc63e8ab-278e-49d9-a6c5-5fe92f06ac56"
+          ],
+          "steps": [
+            "535cf80d-5fb4-4b71-8d5c-e18e7187ddfb",
+            "1f9610ca-8de9-4ae3-abc6-4ad0a4bd5051"
+          ]
+        }
+      },
+      "0": {
+        "_meta": {
+          "rules": [
+            "207f3a12-9e87-40ed-9d43-3f3022adbee0",
+            "0958a571-af4c-4a8a-913b-a05b17520673"
+          ],
+          "steps": [
+            "f1a36d0f-16cb-4ff9-a33e-a55d5ab05af0",
+            "c3971e1e-3831-48e6-a7c3-103c5e5e1e2d"
+          ]
+        }
+      },
+      "2": {
+        "_meta": {
+          "rules": [
+            "7f7f53dd-0b9a-417f-ad49-f8aaa5755bcf",
+            "964eaac9-e5f1-42c7-ad1f-a810a0af5797"
+          ],
+          "steps": [
+            "39a3c828-c5d4-4412-9c3e-339d51bba246",
+            "252ae7c2-98d1-4e3f-94e2-1b0f1a4c7f6d"
+          ]
+        }
+      }
+    },
+    "_meta": {
+      "rules": [
+        "fd39095a-455b-45d0-92bc-b52ee0609c78",
+        "9d9f258c-ab3d-417b-90e8-5d436818c8d9",
+        "a1500870-4ea4-4edf-8b91-919879cd575f"
+      ],
+      "steps": [
+        "9ccbe43d-0e65-48e1-8d4e-3651572246a7",
+        "a82b53ae-722a-41b5-9cd3-1968a03e284a"
+      ]
+    }
+  }
+}

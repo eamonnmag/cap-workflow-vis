@@ -1,0 +1,3084 @@
+{
+  "rules": [],
+  "applied": [
+    {
+      "type": "offset",
+      "id": "fe02bcb8-0245-4bef-9bb4-9754bfd61e88",
+      "rule": {
+        "info": "",
+        "step": {
+          "attributes": {
+            "simulation_seed": 9876,
+            "param_card": "/code/tests/param_card.dat",
+            "proc_card": "/code/tests/proc_card.dat",
+            "nevents": 100,
+            "generate_seed": 1234,
+            "DSID": 123456
+          },
+          "prepublished": {
+            "simulation_seed": 9876,
+            "param_card": "/code/tests/param_card.dat",
+            "proc_card": "/code/tests/proc_card.dat",
+            "nevents": 100,
+            "generate_seed": 1234,
+            "DSID": 123456
+          },
+          "type": "initstep",
+          "name": "init",
+          "inputs": []
+        },
+        "dependencies": null,
+        "name": "init",
+        "context": {},
+        "type": "initStage"
+      },
+      "offset": ""
+    },
+    {
+      "type": "offset",
+      "id": "9cc6a00d-4c81-433f-8534-a6e33f46e57f",
+      "rule": {
+        "info": {
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": {
+                "output": "param_card",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "param_card"
+            },
+            {
+              "value": {
+                "output": "proc_card",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "proc_card"
+            },
+            {
+              "value": {
+                "output": "nevents",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "nevents"
+            },
+            {
+              "value": "lukas.heinrich@cern.ch",
+              "key": "contact"
+            },
+            {
+              "value": "exotic,BSMHiggs",
+              "key": "keywords"
+            },
+            {
+              "value": {
+                "output": "generate_seed",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "generate_seed"
+            },
+            {
+              "value": {
+                "output": "DSID",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "DSID"
+            }
+          ],
+          "workflow": {
+            "stages": [
+              {
+                "dependencies": {
+                  "dependency_type": "jsonpath_ready",
+                  "expressions": [
+                    "init"
+                  ]
+                },
+                "name": "prepare",
+                "scheduler": {
+                  "step": {
+                    "process": {
+                      "cmd": "python jo_maker/make_jobo.py jo_maker/template.py {evgen_joboptions} {keywords} dummy_description example_evgen {proc_card} {param_card} {contact}",
+                      "process_type": "string-interpolated-cmd"
+                    },
+                    "publisher": {
+                      "publisher_type": "frompar-pub",
+                      "outputmap": {
+                        "joboptions": "evgen_joboptions"
+                      }
+                    },
+                    "environment": {
+                      "imagetag": "latest",
+                      "image": "lukasheinrich/generic_evgen",
+                      "envscript": "",
+                      "environment_type": "docker-encapsulated",
+                      "env": {},
+                      "resources": [
+                        "CVMFS"
+                      ]
+                    }
+                  },
+                  "scheduler_type": "singlestep-stage",
+                  "parameters": [
+                    {
+                      "value": {
+                        "output": "keywords",
+                        "stages": "init",
+                        "unwrap": true
+                      },
+                      "key": "keywords"
+                    },
+                    {
+                      "value": {
+                        "output": "param_card",
+                        "stages": "init",
+                        "unwrap": true
+                      },
+                      "key": "param_card"
+                    },
+                    {
+                      "value": {
+                        "output": "contact",
+                        "stages": "init",
+                        "unwrap": true
+                      },
+                      "key": "contact"
+                    },
+                    {
+                      "value": {
+                        "output": "proc_card",
+                        "stages": "init",
+                        "unwrap": true
+                      },
+                      "key": "proc_card"
+                    },
+                    {
+                      "value": "{workdir}/jo.py",
+                      "key": "evgen_joboptions"
+                    }
+                  ]
+                }
+              },
+              {
+                "dependencies": {
+                  "dependency_type": "jsonpath_ready",
+                  "expressions": [
+                    "prepare"
+                  ]
+                },
+                "name": "generate",
+                "scheduler": {
+                  "step": {
+                    "process": {
+                      "cmd": "source resources/env.sh && Generate_tf.py --ecmEnergy={ecmEnergy} --runNumber={DSID} --firstEvent=1 --asetup=\"\" --maxEvents={nevents} --randomSeed={seed} --jobConfig={joboptions} --outputEVNTFile={ouputEVNT}",
+                      "process_type": "string-interpolated-cmd"
+                    },
+                    "publisher": {
+                      "publisher_type": "frompar-pub",
+                      "outputmap": {
+                        "ouputEVNT": "ouputEVNT"
+                      }
+                    },
+                    "environment": {
+                      "imagetag": "latest",
+                      "image": "lukasheinrich/generic_evgen",
+                      "envscript": "",
+                      "environment_type": "docker-encapsulated",
+                      "env": {},
+                      "resources": [
+                        "CVMFS"
+                      ]
+                    }
+                  },
+                  "scheduler_type": "singlestep-stage",
+                  "parameters": [
+                    {
+                      "value": {
+                        "output": "joboptions",
+                        "stages": "prepare",
+                        "unwrap": true
+                      },
+                      "key": "joboptions"
+                    },
+                    {
+                      "value": {
+                        "output": "nevents",
+                        "stages": "init",
+                        "unwrap": true
+                      },
+                      "key": "nevents"
+                    },
+                    {
+                      "value": {
+                        "output": "generate_seed",
+                        "stages": "init",
+                        "unwrap": true
+                      },
+                      "key": "seed"
+                    },
+                    {
+                      "value": 13000,
+                      "key": "ecmEnergy"
+                    },
+                    {
+                      "value": "{workdir}/my.EVNT.pool.root",
+                      "key": "ouputEVNT"
+                    },
+                    {
+                      "value": {
+                        "output": "DSID",
+                        "stages": "init",
+                        "unwrap": true
+                      },
+                      "key": "DSID"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "init"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "madgraph_gen",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3"
+          ],
+          "readonly": [],
+          "nametag": "work3"
+        }
+      },
+      "offset": ""
+    },
+    {
+      "type": "offset",
+      "id": "649f4fc2-6ee1-4228-ac07-0853a50c36d9",
+      "rule": {
+        "info": "",
+        "step": {
+          "attributes": {
+            "param_card": "/code/tests/param_card.dat",
+            "proc_card": "/code/tests/proc_card.dat",
+            "nevents": 100,
+            "contact": "lukas.heinrich@cern.ch",
+            "keywords": "exotic,BSMHiggs",
+            "generate_seed": 1234,
+            "DSID": 123456
+          },
+          "prepublished": {
+            "param_card": "/code/tests/param_card.dat",
+            "proc_card": "/code/tests/proc_card.dat",
+            "nevents": 100,
+            "contact": "lukas.heinrich@cern.ch",
+            "keywords": "exotic,BSMHiggs",
+            "generate_seed": 1234,
+            "DSID": 123456
+          },
+          "type": "initstep",
+          "name": "init madgraph_gen",
+          "inputs": [
+            {
+              "stepid": "76e98a8a-0183-41ba-9b65-705b887a8812",
+              "pointer_path": "/param_card"
+            },
+            {
+              "stepid": "76e98a8a-0183-41ba-9b65-705b887a8812",
+              "pointer_path": "/proc_card"
+            },
+            {
+              "stepid": "76e98a8a-0183-41ba-9b65-705b887a8812",
+              "pointer_path": "/nevents"
+            },
+            {
+              "stepid": "76e98a8a-0183-41ba-9b65-705b887a8812",
+              "pointer_path": "/generate_seed"
+            },
+            {
+              "stepid": "76e98a8a-0183-41ba-9b65-705b887a8812",
+              "pointer_path": "/DSID"
+            }
+          ]
+        },
+        "dependencies": null,
+        "name": "init",
+        "context": {},
+        "type": "initStage"
+      },
+      "offset": "/madgraph_gen/0"
+    },
+    {
+      "type": "offset",
+      "id": "dcbe9382-6509-4797-ab9f-572979b37eb6",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "python jo_maker/make_jobo.py jo_maker/template.py {evgen_joboptions} {keywords} dummy_description example_evgen {proc_card} {param_card} {contact}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "joboptions": "evgen_joboptions"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/generic_evgen",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": [
+                "CVMFS"
+              ]
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": {
+                "output": "keywords",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "keywords"
+            },
+            {
+              "value": {
+                "output": "param_card",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "param_card"
+            },
+            {
+              "value": {
+                "output": "contact",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "contact"
+            },
+            {
+              "value": {
+                "output": "proc_card",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "proc_card"
+            },
+            {
+              "value": "{workdir}/jo.py",
+              "key": "evgen_joboptions"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "init"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "prepare",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen"
+          ],
+          "readonly": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3"
+          ],
+          "nametag": "madgraph_gen"
+        }
+      },
+      "offset": "/madgraph_gen/0"
+    },
+    {
+      "type": "offset",
+      "id": "0f9b1638-522d-4e0b-b19c-7357bd5fcd83",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "source resources/env.sh && Generate_tf.py --ecmEnergy={ecmEnergy} --runNumber={DSID} --firstEvent=1 --asetup=\"\" --maxEvents={nevents} --randomSeed={seed} --jobConfig={joboptions} --outputEVNTFile={ouputEVNT}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "ouputEVNT": "ouputEVNT"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/generic_evgen",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": [
+                "CVMFS"
+              ]
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": {
+                "output": "joboptions",
+                "stages": "prepare",
+                "unwrap": true
+              },
+              "key": "joboptions"
+            },
+            {
+              "value": {
+                "output": "nevents",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "nevents"
+            },
+            {
+              "value": {
+                "output": "generate_seed",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "seed"
+            },
+            {
+              "value": 13000,
+              "key": "ecmEnergy"
+            },
+            {
+              "value": "{workdir}/my.EVNT.pool.root",
+              "key": "ouputEVNT"
+            },
+            {
+              "value": {
+                "output": "DSID",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "DSID"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "prepare"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "generate",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen"
+          ],
+          "readonly": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3"
+          ],
+          "nametag": "madgraph_gen"
+        }
+      },
+      "offset": "/madgraph_gen/0"
+    },
+    {
+      "type": "offset",
+      "id": "3205d9f0-d687-4d19-97cf-bb9ec3e72c30",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "source resources/env.sh AtlasDerivation,20.7.6.2,here && Reco_tf.py --inputEVNTFile {evgenfile} --outputDAODFile my.DAOD.pool.root --reductionConf TRUTH0 && cp *my.DAOD.pool.root {truthderivation}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "truthderiv": "truthderivation"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/athena_trfsbase",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": [
+                "CVMFS"
+              ]
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": {
+                "output": "ouputEVNT",
+                "stages": "madgraph_gen.[*].generate",
+                "unwrap": true
+              },
+              "key": "evgenfile"
+            },
+            {
+              "value": "{workdir}/my.TRUTH_DAOD.pool.root",
+              "key": "truthderivation"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "madgraph_gen"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "truth_derivation",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3"
+          ],
+          "readonly": [],
+          "nametag": "work3"
+        }
+      },
+      "offset": ""
+    },
+    {
+      "type": "offset",
+      "id": "685684ae-b7ab-407d-aba1-741b64db38bb",
+      "rule": {
+        "info": {
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": {
+                "output": "ouputEVNT",
+                "stages": "madgraph_gen.[*].generate",
+                "unwrap": true
+              },
+              "key": "evgen"
+            },
+            {
+              "value": {
+                "output": "simulation_seed",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "simulation_seed"
+            },
+            {
+              "value": -1,
+              "key": "nevents"
+            }
+          ],
+          "workflow": {
+            "stages": [
+              {
+                "dependencies": {
+                  "dependency_type": "jsonpath_ready",
+                  "expressions": [
+                    "init"
+                  ]
+                },
+                "name": "simulation",
+                "scheduler": {
+                  "step": {
+                    "process": {
+                      "cmd": "source resources/env_with_voms.sh AtlasProduction,20.7.5.1,here && Sim_tf.py --AMIConfig {AMItag} --inputEvgenFile {evgenfile} --outputHitsFile {hitsfile} --maxEvents {maxevts} --skipEvents 0 --randomSeed {simseed}",
+                      "process_type": "string-interpolated-cmd"
+                    },
+                    "publisher": {
+                      "publisher_type": "frompar-pub",
+                      "outputmap": {
+                        "hitsfile": "hitsfile"
+                      }
+                    },
+                    "environment": {
+                      "imagetag": "latest",
+                      "image": "lukasheinrich/athena_trfsbase",
+                      "envscript": "",
+                      "environment_type": "docker-encapsulated",
+                      "env": {},
+                      "resources": [
+                        "CVMFS",
+                        "GRIDProxy"
+                      ]
+                    }
+                  },
+                  "scheduler_type": "singlestep-stage",
+                  "parameters": [
+                    {
+                      "value": {
+                        "output": "simulation_seed",
+                        "stages": "init",
+                        "unwrap": true
+                      },
+                      "key": "simseed"
+                    },
+                    {
+                      "value": {
+                        "output": "evgen",
+                        "stages": "init",
+                        "unwrap": true
+                      },
+                      "key": "evgenfile"
+                    },
+                    {
+                      "value": "a766",
+                      "key": "AMItag"
+                    },
+                    {
+                      "value": "{workdir}/my.HITS.pool.root",
+                      "key": "hitsfile"
+                    },
+                    {
+                      "value": {
+                        "output": "nevents",
+                        "stages": "init",
+                        "unwrap": true
+                      },
+                      "key": "maxevts"
+                    }
+                  ]
+                }
+              },
+              {
+                "dependencies": {
+                  "dependency_type": "jsonpath_ready",
+                  "expressions": [
+                    "simulation"
+                  ]
+                },
+                "name": "digitization",
+                "scheduler": {
+                  "step": {
+                    "process": {
+                      "cmd": "source resources/env.sh AtlasProduction,20.7.5.1,here && Reco_tf.py --inputHitsFile {hitsfile} --outputRDOFile {rdofile} --maxEvents {maxevts} --skipEvents 0 --conditionsTag {conditions} --geometryVersion {geometry}",
+                      "process_type": "string-interpolated-cmd"
+                    },
+                    "publisher": {
+                      "publisher_type": "frompar-pub",
+                      "outputmap": {
+                        "rdofile": "rdofile"
+                      }
+                    },
+                    "environment": {
+                      "imagetag": "latest",
+                      "image": "lukasheinrich/athena_trfsbase",
+                      "envscript": "",
+                      "environment_type": "docker-encapsulated",
+                      "env": {},
+                      "resources": [
+                        "CVMFS"
+                      ]
+                    }
+                  },
+                  "scheduler_type": "singlestep-stage",
+                  "parameters": [
+                    {
+                      "value": "{workdir}/my.RDO.pool.root",
+                      "key": "rdofile"
+                    },
+                    {
+                      "value": "default:OFLCOND-RUN12-SDR-19",
+                      "key": "conditions"
+                    },
+                    {
+                      "value": {
+                        "output": "hitsfile",
+                        "stages": "simulation",
+                        "unwrap": true
+                      },
+                      "key": "hitsfile"
+                    },
+                    {
+                      "value": "default:ATLAS-R2-2015-03-01-00_VALIDATION",
+                      "key": "geometry"
+                    },
+                    {
+                      "value": -1,
+                      "key": "maxevts"
+                    }
+                  ]
+                }
+              },
+              {
+                "dependencies": {
+                  "dependency_type": "jsonpath_ready",
+                  "expressions": [
+                    "digitization"
+                  ]
+                },
+                "name": "reconstruction",
+                "scheduler": {
+                  "step": {
+                    "process": {
+                      "cmd": "source resources/env_with_voms.sh AtlasProduction,20.7.5.1,here && Reco_tf.py --inputRDOFile {rdofile} --outputESDFile {esdfile} --outputAODFile {aodfile} --maxEvents {maxevts} --skipEvents 0 --conditionsTag {conditions} --geometryVersion {geometry} --postInclude default:RecJobTransforms/UseFrontier.py",
+                      "process_type": "string-interpolated-cmd"
+                    },
+                    "publisher": {
+                      "publisher_type": "frompar-pub",
+                      "outputmap": {
+                        "esdfile": "esdfile",
+                        "aodfile": "aodfile"
+                      }
+                    },
+                    "environment": {
+                      "imagetag": "latest",
+                      "image": "lukasheinrich/athena_trfsbase",
+                      "envscript": "",
+                      "environment_type": "docker-encapsulated",
+                      "env": {},
+                      "resources": [
+                        "CVMFS",
+                        "GRIDProxy"
+                      ]
+                    }
+                  },
+                  "scheduler_type": "singlestep-stage",
+                  "parameters": [
+                    {
+                      "value": "{workdir}/my.ESD.pool.root",
+                      "key": "esdfile"
+                    },
+                    {
+                      "value": "default:ATLAS-R2-2015-03-01-00",
+                      "key": "geometry"
+                    },
+                    {
+                      "value": {
+                        "output": "rdofile",
+                        "stages": "digitization",
+                        "unwrap": true
+                      },
+                      "key": "rdofile"
+                    },
+                    {
+                      "value": "{workdir}/my.AOD.pool.root",
+                      "key": "aodfile"
+                    },
+                    {
+                      "value": -1,
+                      "key": "maxevts"
+                    },
+                    {
+                      "value": "default:OFLCOND-MC15c-SDR-09",
+                      "key": "conditions"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "madgraph_gen"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "sim_reco",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3"
+          ],
+          "readonly": [],
+          "nametag": "work3"
+        }
+      },
+      "offset": ""
+    },
+    {
+      "type": "offset",
+      "id": "ac75d839-46e8-45e5-bdfb-b3868ecc4c14",
+      "rule": {
+        "info": {
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": {
+                "output": "ouputEVNT",
+                "stages": "madgraph_gen.[*].generate",
+                "unwrap": true
+              },
+              "key": "evgenfile"
+            }
+          ],
+          "workflow": {
+            "stages": [
+              {
+                "dependencies": {
+                  "dependency_type": "jsonpath_ready",
+                  "expressions": [
+                    "init"
+                  ]
+                },
+                "name": "truth_analysis",
+                "scheduler": {
+                  "step": {
+                    "process": {
+                      "cmd": "source ~/.bashrc && MyApp.exe {evgenfile} {plotfile}",
+                      "process_type": "string-interpolated-cmd"
+                    },
+                    "publisher": {
+                      "publisher_type": "frompar-pub",
+                      "outputmap": {
+                        "plots": "plotfile"
+                      }
+                    },
+                    "environment": {
+                      "imagetag": "latest",
+                      "image": "lukasheinrich/bnltutorial",
+                      "envscript": "",
+                      "environment_type": "docker-encapsulated",
+                      "env": {},
+                      "resources": []
+                    }
+                  },
+                  "scheduler_type": "singlestep-stage",
+                  "parameters": [
+                    {
+                      "value": {
+                        "output": "evgenfile",
+                        "stages": "init",
+                        "unwrap": true
+                      },
+                      "key": "evgenfile"
+                    },
+                    {
+                      "value": "{workdir}/analysis_plots.png",
+                      "key": "plotfile"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "madgraph_gen"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "evgen_truthana",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3"
+          ],
+          "readonly": [],
+          "nametag": "work3"
+        }
+      },
+      "offset": ""
+    },
+    {
+      "type": "offset",
+      "id": "c1bef083-f6af-443a-814b-f9e7023adfb0",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "source resources/env.sh && athena.py -c '\"'\"'INPUT=[\"{inputevgen}\"];OUTPUT=\"{outputhepmc}\"'\"'\"' McParticleAlgs/GenEventAsciiWriter_jobOptions.py",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "hepmcfile": "outputhepmc"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/generic_evgen",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": [
+                "CVMFS"
+              ]
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": {
+                "output": "ouputEVNT",
+                "stages": "madgraph_gen.[*].generate",
+                "unwrap": true
+              },
+              "key": "inputevgen"
+            },
+            {
+              "value": "{workdir}/output.hepmc",
+              "key": "outputhepmc"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "madgraph_gen"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "dumphepmc",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3"
+          ],
+          "readonly": [],
+          "nametag": "work3"
+        }
+      },
+      "offset": ""
+    },
+    {
+      "type": "offset",
+      "id": "eaa95317-2b14-4815-add9-ff5d4c60824e",
+      "rule": {
+        "info": "",
+        "step": {
+          "attributes": {
+            "evgenfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen/generate/my.EVNT.pool.root"
+          },
+          "prepublished": {
+            "evgenfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen/generate/my.EVNT.pool.root"
+          },
+          "type": "initstep",
+          "name": "init evgen_truthana",
+          "inputs": [
+            {
+              "stepid": "6babf80e-bc7a-41e1-9454-0e55964455d5",
+              "pointer_path": "/ouputEVNT"
+            }
+          ]
+        },
+        "dependencies": null,
+        "name": "init",
+        "context": {},
+        "type": "initStage"
+      },
+      "offset": "/evgen_truthana/0"
+    },
+    {
+      "type": "offset",
+      "id": "d9d74c6e-f8b9-44fc-ad7a-cd7e78d0a326",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "source ~/.bashrc && MyApp.exe {evgenfile} {plotfile}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "plots": "plotfile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/bnltutorial",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": {
+                "output": "evgenfile",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "evgenfile"
+            },
+            {
+              "value": "{workdir}/analysis_plots.png",
+              "key": "plotfile"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "init"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "truth_analysis",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/evgen_truthana"
+          ],
+          "readonly": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3"
+          ],
+          "nametag": "evgen_truthana"
+        }
+      },
+      "offset": "/evgen_truthana/0"
+    },
+    {
+      "type": "offset",
+      "id": "b6a9cb5b-2271-4ccc-abd5-9cc87dfaca37",
+      "rule": {
+        "info": "",
+        "step": {
+          "attributes": {
+            "evgen": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen/generate/my.EVNT.pool.root",
+            "simulation_seed": 9876,
+            "nevents": -1
+          },
+          "prepublished": {
+            "evgen": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen/generate/my.EVNT.pool.root",
+            "simulation_seed": 9876,
+            "nevents": -1
+          },
+          "type": "initstep",
+          "name": "init sim_reco",
+          "inputs": [
+            {
+              "stepid": "6babf80e-bc7a-41e1-9454-0e55964455d5",
+              "pointer_path": "/ouputEVNT"
+            },
+            {
+              "stepid": "76e98a8a-0183-41ba-9b65-705b887a8812",
+              "pointer_path": "/simulation_seed"
+            }
+          ]
+        },
+        "dependencies": null,
+        "name": "init",
+        "context": {},
+        "type": "initStage"
+      },
+      "offset": "/sim_reco/0"
+    },
+    {
+      "type": "offset",
+      "id": "c56aaebc-f528-465d-b992-1b0da7a731b7",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "source resources/env_with_voms.sh AtlasProduction,20.7.5.1,here && Sim_tf.py --AMIConfig {AMItag} --inputEvgenFile {evgenfile} --outputHitsFile {hitsfile} --maxEvents {maxevts} --skipEvents 0 --randomSeed {simseed}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "hitsfile": "hitsfile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/athena_trfsbase",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": [
+                "CVMFS",
+                "GRIDProxy"
+              ]
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": {
+                "output": "simulation_seed",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "simseed"
+            },
+            {
+              "value": {
+                "output": "evgen",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "evgenfile"
+            },
+            {
+              "value": "a766",
+              "key": "AMItag"
+            },
+            {
+              "value": "{workdir}/my.HITS.pool.root",
+              "key": "hitsfile"
+            },
+            {
+              "value": {
+                "output": "nevents",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "maxevts"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "init"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "simulation",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/sim_reco"
+          ],
+          "readonly": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3"
+          ],
+          "nametag": "sim_reco"
+        }
+      },
+      "offset": "/sim_reco/0"
+    },
+    {
+      "type": "offset",
+      "id": "f085c1a9-d3c6-4ba6-abcb-a66b57e2c34a",
+      "rule": {
+        "info": {
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": {
+                "output": "hepmcfile",
+                "stages": "dumphepmc",
+                "unwrap": true
+              },
+              "key": "hepmcfile"
+            },
+            {
+              "value": "MC_GENERIC",
+              "key": "rivet_analysis"
+            }
+          ],
+          "workflow": {
+            "stages": [
+              {
+                "dependencies": {
+                  "dependency_type": "jsonpath_ready",
+                  "expressions": [
+                    "init"
+                  ]
+                },
+                "name": "rivet",
+                "scheduler": {
+                  "step": {
+                    "process": {
+                      "cmd": "rivet -a {analysis} -H {outputyoda} {inputhepmc}",
+                      "process_type": "string-interpolated-cmd"
+                    },
+                    "publisher": {
+                      "publisher_type": "frompar-pub",
+                      "outputmap": {
+                        "yodafile": "outputyoda"
+                      }
+                    },
+                    "environment": {
+                      "imagetag": "latest",
+                      "image": "lukasheinrich/rivet-with-tex",
+                      "envscript": "",
+                      "environment_type": "docker-encapsulated",
+                      "env": {},
+                      "resources": []
+                    }
+                  },
+                  "scheduler_type": "singlestep-stage",
+                  "parameters": [
+                    {
+                      "value": "{workdir}/output.yoda",
+                      "key": "outputyoda"
+                    },
+                    {
+                      "value": {
+                        "output": "hepmcfile",
+                        "stages": "init"
+                      },
+                      "key": "inputhepmc"
+                    },
+                    {
+                      "value": {
+                        "output": "rivet_analysis",
+                        "stages": "init",
+                        "unwrap": true
+                      },
+                      "key": "analysis"
+                    }
+                  ]
+                }
+              },
+              {
+                "dependencies": {
+                  "dependency_type": "jsonpath_ready",
+                  "expressions": [
+                    "rivet"
+                  ]
+                },
+                "name": "rivetplots",
+                "scheduler": {
+                  "step": {
+                    "process": {
+                      "cmd": "rivet-mkhtml -o {yodaplots} {inputyoda}",
+                      "process_type": "string-interpolated-cmd"
+                    },
+                    "publisher": {
+                      "publisher_type": "frompar-pub",
+                      "outputmap": {
+                        "plots": "yodaplots"
+                      }
+                    },
+                    "environment": {
+                      "imagetag": "latest",
+                      "image": "lukasheinrich/rivet-with-tex",
+                      "envscript": "",
+                      "environment_type": "docker-encapsulated",
+                      "env": {},
+                      "resources": []
+                    }
+                  },
+                  "scheduler_type": "singlestep-stage",
+                  "parameters": [
+                    {
+                      "value": {
+                        "output": "yodafile",
+                        "stages": "rivet"
+                      },
+                      "key": "inputyoda"
+                    },
+                    {
+                      "value": "{workdir}/plots",
+                      "key": "yodaplots"
+                    }
+                  ]
+                }
+              },
+              {
+                "dependencies": {
+                  "dependency_type": "jsonpath_ready",
+                  "expressions": [
+                    "init"
+                  ]
+                },
+                "name": "delphes",
+                "scheduler": {
+                  "step": {
+                    "process": {
+                      "cmd": "DelphesHepMC  {delphes_card} {outputroot} {inputhepmc} && root2lhco {outputroot} {outputlhco}",
+                      "process_type": "string-interpolated-cmd"
+                    },
+                    "publisher": {
+                      "publisher_type": "frompar-pub",
+                      "outputmap": {
+                        "lhcofile": "outputlhco",
+                        "rootfile": "outputroot"
+                      }
+                    },
+                    "environment": {
+                      "imagetag": "latest",
+                      "image": "lukasheinrich/root-delphes",
+                      "envscript": "",
+                      "environment_type": "docker-encapsulated",
+                      "env": {},
+                      "resources": []
+                    }
+                  },
+                  "scheduler_type": "singlestep-stage",
+                  "parameters": [
+                    {
+                      "value": "{workdir}/output.lhco",
+                      "key": "outputlhco"
+                    },
+                    {
+                      "value": "delphes/cards/delphes_card_ATLAS.tcl",
+                      "key": "delphes_card"
+                    },
+                    {
+                      "value": "{workdir}/output.root",
+                      "key": "outputroot"
+                    },
+                    {
+                      "value": {
+                        "output": "hepmcfile",
+                        "stages": "init"
+                      },
+                      "key": "inputhepmc"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "dumphepmc"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "phenoflow",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3"
+          ],
+          "readonly": [],
+          "nametag": "work3"
+        }
+      },
+      "offset": ""
+    },
+    {
+      "type": "offset",
+      "id": "ac3f3bf2-7c91-462f-8a66-67294df7828e",
+      "rule": {
+        "info": "",
+        "step": {
+          "attributes": {
+            "hepmcfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/dumphepmc/output.hepmc",
+            "rivet_analysis": "MC_GENERIC"
+          },
+          "prepublished": {
+            "hepmcfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/dumphepmc/output.hepmc",
+            "rivet_analysis": "MC_GENERIC"
+          },
+          "type": "initstep",
+          "name": "init phenoflow",
+          "inputs": [
+            {
+              "stepid": "d73211db-86be-491f-b0ab-5ad302e46a46",
+              "pointer_path": "/hepmcfile"
+            }
+          ]
+        },
+        "dependencies": null,
+        "name": "init",
+        "context": {},
+        "type": "initStage"
+      },
+      "offset": "/phenoflow/0"
+    },
+    {
+      "type": "offset",
+      "id": "6144e592-359c-4811-a74c-c98b475cb204",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "DelphesHepMC  {delphes_card} {outputroot} {inputhepmc} && root2lhco {outputroot} {outputlhco}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "lhcofile": "outputlhco",
+                "rootfile": "outputroot"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/root-delphes",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": "{workdir}/output.lhco",
+              "key": "outputlhco"
+            },
+            {
+              "value": "delphes/cards/delphes_card_ATLAS.tcl",
+              "key": "delphes_card"
+            },
+            {
+              "value": "{workdir}/output.root",
+              "key": "outputroot"
+            },
+            {
+              "value": {
+                "output": "hepmcfile",
+                "stages": "init"
+              },
+              "key": "inputhepmc"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "init"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "delphes",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/phenoflow"
+          ],
+          "readonly": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3"
+          ],
+          "nametag": "phenoflow"
+        }
+      },
+      "offset": "/phenoflow/0"
+    },
+    {
+      "type": "offset",
+      "id": "27978883-de07-4ee2-acbb-315adbf29fe3",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "rivet -a {analysis} -H {outputyoda} {inputhepmc}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "yodafile": "outputyoda"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/rivet-with-tex",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": "{workdir}/output.yoda",
+              "key": "outputyoda"
+            },
+            {
+              "value": {
+                "output": "hepmcfile",
+                "stages": "init"
+              },
+              "key": "inputhepmc"
+            },
+            {
+              "value": {
+                "output": "rivet_analysis",
+                "stages": "init",
+                "unwrap": true
+              },
+              "key": "analysis"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "init"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "rivet",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/phenoflow"
+          ],
+          "readonly": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3"
+          ],
+          "nametag": "phenoflow"
+        }
+      },
+      "offset": "/phenoflow/0"
+    },
+    {
+      "type": "offset",
+      "id": "7435319f-6aae-41cb-8417-aa5b4239cefd",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "source resources/env.sh AtlasProduction,20.7.5.1,here && Reco_tf.py --inputHitsFile {hitsfile} --outputRDOFile {rdofile} --maxEvents {maxevts} --skipEvents 0 --conditionsTag {conditions} --geometryVersion {geometry}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "rdofile": "rdofile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/athena_trfsbase",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": [
+                "CVMFS"
+              ]
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": "{workdir}/my.RDO.pool.root",
+              "key": "rdofile"
+            },
+            {
+              "value": "default:OFLCOND-RUN12-SDR-19",
+              "key": "conditions"
+            },
+            {
+              "value": {
+                "output": "hitsfile",
+                "stages": "simulation",
+                "unwrap": true
+              },
+              "key": "hitsfile"
+            },
+            {
+              "value": "default:ATLAS-R2-2015-03-01-00_VALIDATION",
+              "key": "geometry"
+            },
+            {
+              "value": -1,
+              "key": "maxevts"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "simulation"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "digitization",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/sim_reco"
+          ],
+          "readonly": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3"
+          ],
+          "nametag": "sim_reco"
+        }
+      },
+      "offset": "/sim_reco/0"
+    },
+    {
+      "type": "offset",
+      "id": "bafd03dc-67da-4168-a320-7908a540ecbe",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "rivet-mkhtml -o {yodaplots} {inputyoda}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "plots": "yodaplots"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/rivet-with-tex",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": {
+                "output": "yodafile",
+                "stages": "rivet"
+              },
+              "key": "inputyoda"
+            },
+            {
+              "value": "{workdir}/plots",
+              "key": "yodaplots"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "rivet"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "rivetplots",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/phenoflow"
+          ],
+          "readonly": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3"
+          ],
+          "nametag": "phenoflow"
+        }
+      },
+      "offset": "/phenoflow/0"
+    },
+    {
+      "type": "offset",
+      "id": "cae878b7-8aa6-4576-9855-2d05a67c4382",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "source resources/env_with_voms.sh AtlasProduction,20.7.5.1,here && Reco_tf.py --inputRDOFile {rdofile} --outputESDFile {esdfile} --outputAODFile {aodfile} --maxEvents {maxevts} --skipEvents 0 --conditionsTag {conditions} --geometryVersion {geometry} --postInclude default:RecJobTransforms/UseFrontier.py",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "esdfile": "esdfile",
+                "aodfile": "aodfile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/athena_trfsbase",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": [
+                "CVMFS",
+                "GRIDProxy"
+              ]
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": "{workdir}/my.ESD.pool.root",
+              "key": "esdfile"
+            },
+            {
+              "value": "default:ATLAS-R2-2015-03-01-00",
+              "key": "geometry"
+            },
+            {
+              "value": {
+                "output": "rdofile",
+                "stages": "digitization",
+                "unwrap": true
+              },
+              "key": "rdofile"
+            },
+            {
+              "value": "{workdir}/my.AOD.pool.root",
+              "key": "aodfile"
+            },
+            {
+              "value": -1,
+              "key": "maxevts"
+            },
+            {
+              "value": "default:OFLCOND-MC15c-SDR-09",
+              "key": "conditions"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "digitization"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "reconstruction",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/sim_reco"
+          ],
+          "readonly": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3"
+          ],
+          "nametag": "sim_reco"
+        }
+      },
+      "offset": "/sim_reco/0"
+    },
+    {
+      "type": "offset",
+      "id": "c4a53bb5-b4a1-436b-a8e9-36c8824fdd03",
+      "rule": {
+        "info": {
+          "step": {
+            "process": {
+              "cmd": "source resources/env_with_voms.sh AtlasDerivation,20.7.6.2,here && Reco_tf.py --AMI {ptag} --inputAODFile {aodfile} --outputDAODFile my.DAOD.pool.root && cp *my.DAOD.pool.root {daodfile}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "daodfile": "daodfile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/athena_trfsbase",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": [
+                "CVMFS",
+                "GRIDProxy"
+              ]
+            }
+          },
+          "scheduler_type": "singlestep-stage",
+          "parameters": [
+            {
+              "value": "p2656",
+              "key": "ptag"
+            },
+            {
+              "value": {
+                "output": "aodfile",
+                "stages": "sim_reco.[*].reconstruction",
+                "unwrap": true
+              },
+              "key": "aodfile"
+            },
+            {
+              "value": "{workdir}/my.DAOD.pool.root",
+              "key": "daodfile"
+            }
+          ]
+        },
+        "dependencies": {
+          "dependency_type": "jsonpath_ready",
+          "expressions": [
+            "sim_reco"
+          ]
+        },
+        "type": "jsonStage",
+        "name": "derivation",
+        "context": {
+          "readwrite": [
+            "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3"
+          ],
+          "readonly": [],
+          "nametag": "work3"
+        }
+      },
+      "offset": ""
+    }
+  ],
+  "dag": {
+    "nodes": [
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "5c8d7d28-c06e-45b9-9350-d4cc3627946e",
+              "pointer_path": "/aodfile"
+            }
+          ],
+          "name": "derivation",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/derivation"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3"
+            ],
+            "nametag": "derivation"
+          },
+          "attributes": {
+            "ptag": "p2656",
+            "aodfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/sim_reco/reconstruction/my.AOD.pool.root",
+            "daodfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/derivation/my.DAOD.pool.root"
+          },
+          "prepublished": {
+            "daodfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/derivation/my.DAOD.pool.root"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "source resources/env_with_voms.sh AtlasDerivation,20.7.6.2,here && Reco_tf.py --AMI {ptag} --inputAODFile {aodfile} --outputDAODFile my.DAOD.pool.root && cp *my.DAOD.pool.root {daodfile}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "daodfile": "daodfile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/athena_trfsbase",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": [
+                "CVMFS",
+                "GRIDProxy"
+              ]
+            }
+          }
+        },
+        "name": "derivation",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471335775.789939,
+          "ready by": 1471335776.185689,
+          "submit": 1471335776.157548
+        },
+        "id": "a60bab27-1a84-4b0f-b3fb-18cfac98073b"
+      },
+      {
+        "task": {
+          "attributes": {
+            "param_card": "/code/tests/param_card.dat",
+            "proc_card": "/code/tests/proc_card.dat",
+            "nevents": 100,
+            "contact": "lukas.heinrich@cern.ch",
+            "keywords": "exotic,BSMHiggs",
+            "generate_seed": 1234,
+            "DSID": 123456
+          },
+          "prepublished": {
+            "param_card": "/code/tests/param_card.dat",
+            "proc_card": "/code/tests/proc_card.dat",
+            "nevents": 100,
+            "contact": "lukas.heinrich@cern.ch",
+            "keywords": "exotic,BSMHiggs",
+            "generate_seed": 1234,
+            "DSID": 123456
+          },
+          "type": "initstep",
+          "name": "init madgraph_gen",
+          "inputs": [
+            {
+              "stepid": "76e98a8a-0183-41ba-9b65-705b887a8812",
+              "pointer_path": "/param_card"
+            },
+            {
+              "stepid": "76e98a8a-0183-41ba-9b65-705b887a8812",
+              "pointer_path": "/proc_card"
+            },
+            {
+              "stepid": "76e98a8a-0183-41ba-9b65-705b887a8812",
+              "pointer_path": "/nevents"
+            },
+            {
+              "stepid": "76e98a8a-0183-41ba-9b65-705b887a8812",
+              "pointer_path": "/generate_seed"
+            },
+            {
+              "stepid": "76e98a8a-0183-41ba-9b65-705b887a8812",
+              "pointer_path": "/DSID"
+            }
+          ]
+        },
+        "name": "init madgraph_gen",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471335774.602774,
+          "ready by": 1471335775.847117,
+          "submit": 1471335775.820117
+        },
+        "id": "4d609770-bb50-4d11-a253-03d290d0ea4d"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "f1e9c822-3297-41af-812e-90f066294d3b",
+              "pointer_path": "/evgenfile"
+            }
+          ],
+          "name": "truth_analysis",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/evgen_truthana/truth_analysis"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3",
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/evgen_truthana"
+            ],
+            "nametag": "truth_analysis"
+          },
+          "attributes": {
+            "evgenfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen/generate/my.EVNT.pool.root",
+            "plotfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/evgen_truthana/truth_analysis/analysis_plots.png"
+          },
+          "prepublished": {
+            "plots": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/evgen_truthana/truth_analysis/analysis_plots.png"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "source ~/.bashrc && MyApp.exe {evgenfile} {plotfile}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "plots": "plotfile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/bnltutorial",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          }
+        },
+        "name": "truth_analysis",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471335775.225287,
+          "ready by": 1471335776.103042,
+          "submit": 1471335776.051229
+        },
+        "id": "0d4bc1e1-decc-4e70-83f8-4e181e78e7b9"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "af858142-1b3a-4660-9b0f-61fc480a3de0",
+              "pointer_path": "/hepmcfile"
+            },
+            {
+              "stepid": "af858142-1b3a-4660-9b0f-61fc480a3de0",
+              "pointer_path": "/rivet_analysis"
+            }
+          ],
+          "name": "rivet",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/phenoflow/rivet"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3",
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/phenoflow"
+            ],
+            "nametag": "rivet"
+          },
+          "attributes": {
+            "outputyoda": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/phenoflow/rivet/output.yoda",
+            "inputhepmc": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/dumphepmc/output.hepmc"
+            ],
+            "analysis": "MC_GENERIC"
+          },
+          "prepublished": {
+            "yodafile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/phenoflow/rivet/output.yoda"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "rivet -a {analysis} -H {outputyoda} {inputhepmc}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "yodafile": "outputyoda"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/rivet-with-tex",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          }
+        },
+        "name": "rivet",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471335775.564557,
+          "ready by": 1471335776.053398,
+          "submit": 1471335776.045168
+        },
+        "id": "d6ae4cc5-57e1-4e77-bca2-bb0b8c3c5701"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "d6ae4cc5-57e1-4e77-bca2-bb0b8c3c5701",
+              "pointer_path": "/yodafile"
+            }
+          ],
+          "name": "rivetplots",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/phenoflow/rivetplots"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3",
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/phenoflow"
+            ],
+            "nametag": "rivetplots"
+          },
+          "attributes": {
+            "inputyoda": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/phenoflow/rivet/output.yoda"
+            ],
+            "yodaplots": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/phenoflow/rivetplots/plots"
+          },
+          "prepublished": {
+            "plots": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/phenoflow/rivetplots/plots"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "rivet-mkhtml -o {yodaplots} {inputyoda}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "plots": "yodaplots"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/rivet-with-tex",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          }
+        },
+        "name": "rivetplots",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471335775.686078,
+          "ready by": 1471335776.132365,
+          "submit": 1471335776.104688
+        },
+        "id": "0538e0d5-4a9c-4548-ace4-a12a0e977eed"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "72ec1ef7-6229-424e-ac2f-b4d020f50dbb",
+              "pointer_path": "/joboptions"
+            },
+            {
+              "stepid": "4d609770-bb50-4d11-a253-03d290d0ea4d",
+              "pointer_path": "/nevents"
+            },
+            {
+              "stepid": "4d609770-bb50-4d11-a253-03d290d0ea4d",
+              "pointer_path": "/generate_seed"
+            },
+            {
+              "stepid": "4d609770-bb50-4d11-a253-03d290d0ea4d",
+              "pointer_path": "/DSID"
+            }
+          ],
+          "name": "generate",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen/generate"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3",
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen"
+            ],
+            "nametag": "generate"
+          },
+          "attributes": {
+            "nevents": 100,
+            "seed": 1234,
+            "ecmEnergy": 13000,
+            "ouputEVNT": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen/generate/my.EVNT.pool.root",
+            "joboptions": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen/prepare/jo.py",
+            "DSID": 123456
+          },
+          "prepublished": {
+            "ouputEVNT": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen/generate/my.EVNT.pool.root"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "source resources/env.sh && Generate_tf.py --ecmEnergy={ecmEnergy} --runNumber={DSID} --firstEvent=1 --asetup=\"\" --maxEvents={nevents} --randomSeed={seed} --jobConfig={joboptions} --outputEVNTFile={ouputEVNT}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "ouputEVNT": "ouputEVNT"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/generic_evgen",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": [
+                "CVMFS"
+              ]
+            }
+          }
+        },
+        "name": "generate",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471335774.933289,
+          "ready by": 1471335775.988551,
+          "submit": 1471335775.931785
+        },
+        "id": "6babf80e-bc7a-41e1-9454-0e55964455d5"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "af858142-1b3a-4660-9b0f-61fc480a3de0",
+              "pointer_path": "/hepmcfile"
+            }
+          ],
+          "name": "delphes",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/phenoflow/delphes"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3",
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/phenoflow"
+            ],
+            "nametag": "delphes"
+          },
+          "attributes": {
+            "outputlhco": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/phenoflow/delphes/output.lhco",
+            "delphes_card": "delphes/cards/delphes_card_ATLAS.tcl",
+            "outputroot": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/phenoflow/delphes/output.root",
+            "inputhepmc": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/dumphepmc/output.hepmc"
+            ]
+          },
+          "prepublished": {
+            "lhcofile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/phenoflow/delphes/output.lhco",
+            "rootfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/phenoflow/delphes/output.root"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "DelphesHepMC  {delphes_card} {outputroot} {inputhepmc} && root2lhco {outputroot} {outputlhco}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "lhcofile": "outputlhco",
+                "rootfile": "outputroot"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/root-delphes",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": []
+            }
+          }
+        },
+        "name": "delphes",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471335775.467323,
+          "ready by": 1471335776.079573,
+          "submit": 1471335776.046195
+        },
+        "id": "28c45b99-9c6c-46f1-9778-aa6fbd6c6831"
+      },
+      {
+        "task": {
+          "attributes": {
+            "simulation_seed": 9876,
+            "param_card": "/code/tests/param_card.dat",
+            "proc_card": "/code/tests/proc_card.dat",
+            "nevents": 100,
+            "generate_seed": 1234,
+            "DSID": 123456
+          },
+          "prepublished": {
+            "simulation_seed": 9876,
+            "param_card": "/code/tests/param_card.dat",
+            "proc_card": "/code/tests/proc_card.dat",
+            "nevents": 100,
+            "generate_seed": 1234,
+            "DSID": 123456
+          },
+          "type": "initstep",
+          "name": "init",
+          "inputs": []
+        },
+        "name": "init",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471335774.368427,
+          "ready by": 1471335775.796476,
+          "submit": 1471335775.791988
+        },
+        "id": "76e98a8a-0183-41ba-9b65-705b887a8812"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "a3fe60b2-9926-4995-92b7-b4d2a66a9230",
+              "pointer_path": "/hitsfile"
+            }
+          ],
+          "name": "digitization",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/sim_reco/digitization"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3",
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/sim_reco"
+            ],
+            "nametag": "digitization"
+          },
+          "attributes": {
+            "rdofile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/sim_reco/digitization/my.RDO.pool.root",
+            "hitsfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/sim_reco/simulation/my.HITS.pool.root",
+            "conditions": "default:OFLCOND-RUN12-SDR-19",
+            "geometry": "default:ATLAS-R2-2015-03-01-00_VALIDATION",
+            "maxevts": -1
+          },
+          "prepublished": {
+            "rdofile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/sim_reco/digitization/my.RDO.pool.root"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "source resources/env.sh AtlasProduction,20.7.5.1,here && Reco_tf.py --inputHitsFile {hitsfile} --outputRDOFile {rdofile} --maxEvents {maxevts} --skipEvents 0 --conditionsTag {conditions} --geometryVersion {geometry}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "rdofile": "rdofile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/athena_trfsbase",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": [
+                "CVMFS"
+              ]
+            }
+          }
+        },
+        "name": "digitization",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471335775.614264,
+          "ready by": 1471335776.125756,
+          "submit": 1471335776.103763
+        },
+        "id": "62d02a2b-776c-49e2-a379-e346216d43f5"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "2c1c6484-430f-4e82-a1ce-d8a3ebb4187d",
+              "pointer_path": "/simulation_seed"
+            },
+            {
+              "stepid": "2c1c6484-430f-4e82-a1ce-d8a3ebb4187d",
+              "pointer_path": "/evgen"
+            },
+            {
+              "stepid": "2c1c6484-430f-4e82-a1ce-d8a3ebb4187d",
+              "pointer_path": "/nevents"
+            }
+          ],
+          "name": "simulation",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/sim_reco/simulation"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3",
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/sim_reco"
+            ],
+            "nametag": "simulation"
+          },
+          "attributes": {
+            "simseed": 9876,
+            "evgenfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen/generate/my.EVNT.pool.root",
+            "AMItag": "a766",
+            "hitsfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/sim_reco/simulation/my.HITS.pool.root",
+            "maxevts": -1
+          },
+          "prepublished": {
+            "hitsfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/sim_reco/simulation/my.HITS.pool.root"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "source resources/env_with_voms.sh AtlasProduction,20.7.5.1,here && Sim_tf.py --AMIConfig {AMItag} --inputEvgenFile {evgenfile} --outputHitsFile {hitsfile} --maxEvents {maxevts} --skipEvents 0 --randomSeed {simseed}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "hitsfile": "hitsfile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/athena_trfsbase",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": [
+                "CVMFS",
+                "GRIDProxy"
+              ]
+            }
+          }
+        },
+        "name": "simulation",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471335775.360757,
+          "ready by": 1471335776.051718,
+          "submit": 1471335776.039274
+        },
+        "id": "a3fe60b2-9926-4995-92b7-b4d2a66a9230"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "6babf80e-bc7a-41e1-9454-0e55964455d5",
+              "pointer_path": "/ouputEVNT"
+            }
+          ],
+          "name": "truth_derivation",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/truth_derivation"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3"
+            ],
+            "nametag": "truth_derivation"
+          },
+          "attributes": {
+            "evgenfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen/generate/my.EVNT.pool.root",
+            "truthderivation": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/truth_derivation/my.TRUTH_DAOD.pool.root"
+          },
+          "prepublished": {
+            "truthderiv": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/truth_derivation/my.TRUTH_DAOD.pool.root"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "source resources/env.sh AtlasDerivation,20.7.6.2,here && Reco_tf.py --inputEVNTFile {evgenfile} --outputDAODFile my.DAOD.pool.root --reductionConf TRUTH0 && cp *my.DAOD.pool.root {truthderivation}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "truthderiv": "truthderivation"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/athena_trfsbase",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": [
+                "CVMFS"
+              ]
+            }
+          }
+        },
+        "name": "truth_derivation",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471335774.968556,
+          "ready by": 1471335776.038644,
+          "submit": 1471335775.998727
+        },
+        "id": "dc690e8d-f2d1-4ddb-adc5-2f683d7d746d"
+      },
+      {
+        "task": {
+          "attributes": {
+            "evgenfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen/generate/my.EVNT.pool.root"
+          },
+          "prepublished": {
+            "evgenfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen/generate/my.EVNT.pool.root"
+          },
+          "type": "initstep",
+          "name": "init evgen_truthana",
+          "inputs": [
+            {
+              "stepid": "6babf80e-bc7a-41e1-9454-0e55964455d5",
+              "pointer_path": "/ouputEVNT"
+            }
+          ]
+        },
+        "name": "init evgen_truthana",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471335775.146151,
+          "ready by": 1471335776.037304,
+          "submit": 1471335776.012393
+        },
+        "id": "f1e9c822-3297-41af-812e-90f066294d3b"
+      },
+      {
+        "task": {
+          "attributes": {
+            "evgen": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen/generate/my.EVNT.pool.root",
+            "simulation_seed": 9876,
+            "nevents": -1
+          },
+          "prepublished": {
+            "evgen": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen/generate/my.EVNT.pool.root",
+            "simulation_seed": 9876,
+            "nevents": -1
+          },
+          "type": "initstep",
+          "name": "init sim_reco",
+          "inputs": [
+            {
+              "stepid": "6babf80e-bc7a-41e1-9454-0e55964455d5",
+              "pointer_path": "/ouputEVNT"
+            },
+            {
+              "stepid": "76e98a8a-0183-41ba-9b65-705b887a8812",
+              "pointer_path": "/simulation_seed"
+            }
+          ]
+        },
+        "name": "init sim_reco",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471335775.226558,
+          "ready by": 1471335776.012791,
+          "submit": 1471335775.993756
+        },
+        "id": "2c1c6484-430f-4e82-a1ce-d8a3ebb4187d"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "6babf80e-bc7a-41e1-9454-0e55964455d5",
+              "pointer_path": "/ouputEVNT"
+            }
+          ],
+          "name": "dumphepmc",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/dumphepmc"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3"
+            ],
+            "nametag": "dumphepmc"
+          },
+          "attributes": {
+            "inputevgen": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen/generate/my.EVNT.pool.root",
+            "outputhepmc": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/dumphepmc/output.hepmc"
+          },
+          "prepublished": {
+            "hepmcfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/dumphepmc/output.hepmc"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "source resources/env.sh && athena.py -c '\"'\"'INPUT=[\"{inputevgen}\"];OUTPUT=\"{outputhepmc}\"'\"'\"' McParticleAlgs/GenEventAsciiWriter_jobOptions.py",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "hepmcfile": "outputhepmc"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/generic_evgen",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": [
+                "CVMFS"
+              ]
+            }
+          }
+        },
+        "name": "dumphepmc",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471335775.145262,
+          "ready by": 1471335776.013577,
+          "submit": 1471335775.996551
+        },
+        "id": "d73211db-86be-491f-b0ab-5ad302e46a46"
+      },
+      {
+        "task": {
+          "attributes": {
+            "hepmcfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/dumphepmc/output.hepmc",
+            "rivet_analysis": "MC_GENERIC"
+          },
+          "prepublished": {
+            "hepmcfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/dumphepmc/output.hepmc",
+            "rivet_analysis": "MC_GENERIC"
+          },
+          "type": "initstep",
+          "name": "init phenoflow",
+          "inputs": [
+            {
+              "stepid": "d73211db-86be-491f-b0ab-5ad302e46a46",
+              "pointer_path": "/hepmcfile"
+            }
+          ]
+        },
+        "name": "init phenoflow",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471335775.413718,
+          "ready by": 1471335776.044464,
+          "submit": 1471335776.040334
+        },
+        "id": "af858142-1b3a-4660-9b0f-61fc480a3de0"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "4d609770-bb50-4d11-a253-03d290d0ea4d",
+              "pointer_path": "/keywords"
+            },
+            {
+              "stepid": "4d609770-bb50-4d11-a253-03d290d0ea4d",
+              "pointer_path": "/param_card"
+            },
+            {
+              "stepid": "4d609770-bb50-4d11-a253-03d290d0ea4d",
+              "pointer_path": "/contact"
+            },
+            {
+              "stepid": "4d609770-bb50-4d11-a253-03d290d0ea4d",
+              "pointer_path": "/proc_card"
+            }
+          ],
+          "name": "prepare",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen/prepare"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3",
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen"
+            ],
+            "nametag": "prepare"
+          },
+          "attributes": {
+            "keywords": "exotic,BSMHiggs",
+            "param_card": "/code/tests/param_card.dat",
+            "contact": "lukas.heinrich@cern.ch",
+            "proc_card": "/code/tests/proc_card.dat",
+            "evgen_joboptions": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen/prepare/jo.py"
+          },
+          "prepublished": {
+            "joboptions": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/madgraph_gen/prepare/jo.py"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "python jo_maker/make_jobo.py jo_maker/template.py {evgen_joboptions} {keywords} dummy_description example_evgen {proc_card} {param_card} {contact}",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "joboptions": "evgen_joboptions"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/generic_evgen",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": [
+                "CVMFS"
+              ]
+            }
+          }
+        },
+        "name": "prepare",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471335774.747,
+          "ready by": 1471335775.929315,
+          "submit": 1471335775.852052
+        },
+        "id": "72ec1ef7-6229-424e-ac2f-b4d020f50dbb"
+      },
+      {
+        "task": {
+          "inputs": [
+            {
+              "stepid": "62d02a2b-776c-49e2-a379-e346216d43f5",
+              "pointer_path": "/rdofile"
+            }
+          ],
+          "name": "reconstruction",
+          "context": {
+            "readwrite": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/sim_reco/reconstruction"
+            ],
+            "readonly": [
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3",
+              "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/sim_reco"
+            ],
+            "nametag": "reconstruction"
+          },
+          "attributes": {
+            "rdofile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/sim_reco/digitization/my.RDO.pool.root",
+            "esdfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/sim_reco/reconstruction/my.ESD.pool.root",
+            "maxevts": -1,
+            "geometry": "default:ATLAS-R2-2015-03-01-00",
+            "conditions": "default:OFLCOND-MC15c-SDR-09",
+            "aodfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/sim_reco/reconstruction/my.AOD.pool.root"
+          },
+          "prepublished": {
+            "esdfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/sim_reco/reconstruction/my.ESD.pool.root",
+            "aodfile": "/Users/lukas/Code/yadagedev/xAOD-full-chain/yadage-defs/work3/sim_reco/reconstruction/my.AOD.pool.root"
+          },
+          "type": "yadagestep",
+          "spec": {
+            "process": {
+              "cmd": "source resources/env_with_voms.sh AtlasProduction,20.7.5.1,here && Reco_tf.py --inputRDOFile {rdofile} --outputESDFile {esdfile} --outputAODFile {aodfile} --maxEvents {maxevts} --skipEvents 0 --conditionsTag {conditions} --geometryVersion {geometry} --postInclude default:RecJobTransforms/UseFrontier.py",
+              "process_type": "string-interpolated-cmd"
+            },
+            "publisher": {
+              "publisher_type": "frompar-pub",
+              "outputmap": {
+                "esdfile": "esdfile",
+                "aodfile": "aodfile"
+              }
+            },
+            "environment": {
+              "imagetag": "latest",
+              "image": "lukasheinrich/athena_trfsbase",
+              "envscript": "",
+              "environment_type": "docker-encapsulated",
+              "env": {},
+              "resources": [
+                "CVMFS",
+                "GRIDProxy"
+              ]
+            }
+          }
+        },
+        "name": "reconstruction",
+        "state": "SUCCESS",
+        "proxy": {
+          "type": "PacktivityProxyBase",
+          "proxydetails": null
+        },
+        "timestamps": {
+          "defined": 1471335775.736935,
+          "ready by": 1471335776.155746,
+          "submit": 1471335776.13405
+        },
+        "id": "5c8d7d28-c06e-45b9-9350-d4cc3627946e"
+      }
+    ],
+    "edges": [
+      [
+        "4d609770-bb50-4d11-a253-03d290d0ea4d",
+        "6babf80e-bc7a-41e1-9454-0e55964455d5"
+      ],
+      [
+        "4d609770-bb50-4d11-a253-03d290d0ea4d",
+        "72ec1ef7-6229-424e-ac2f-b4d020f50dbb"
+      ],
+      [
+        "d6ae4cc5-57e1-4e77-bca2-bb0b8c3c5701",
+        "0538e0d5-4a9c-4548-ace4-a12a0e977eed"
+      ],
+      [
+        "6babf80e-bc7a-41e1-9454-0e55964455d5",
+        "2c1c6484-430f-4e82-a1ce-d8a3ebb4187d"
+      ],
+      [
+        "6babf80e-bc7a-41e1-9454-0e55964455d5",
+        "d73211db-86be-491f-b0ab-5ad302e46a46"
+      ],
+      [
+        "6babf80e-bc7a-41e1-9454-0e55964455d5",
+        "dc690e8d-f2d1-4ddb-adc5-2f683d7d746d"
+      ],
+      [
+        "6babf80e-bc7a-41e1-9454-0e55964455d5",
+        "f1e9c822-3297-41af-812e-90f066294d3b"
+      ],
+      [
+        "76e98a8a-0183-41ba-9b65-705b887a8812",
+        "4d609770-bb50-4d11-a253-03d290d0ea4d"
+      ],
+      [
+        "76e98a8a-0183-41ba-9b65-705b887a8812",
+        "2c1c6484-430f-4e82-a1ce-d8a3ebb4187d"
+      ],
+      [
+        "62d02a2b-776c-49e2-a379-e346216d43f5",
+        "5c8d7d28-c06e-45b9-9350-d4cc3627946e"
+      ],
+      [
+        "a3fe60b2-9926-4995-92b7-b4d2a66a9230",
+        "62d02a2b-776c-49e2-a379-e346216d43f5"
+      ],
+      [
+        "f1e9c822-3297-41af-812e-90f066294d3b",
+        "0d4bc1e1-decc-4e70-83f8-4e181e78e7b9"
+      ],
+      [
+        "2c1c6484-430f-4e82-a1ce-d8a3ebb4187d",
+        "a3fe60b2-9926-4995-92b7-b4d2a66a9230"
+      ],
+      [
+        "d73211db-86be-491f-b0ab-5ad302e46a46",
+        "af858142-1b3a-4660-9b0f-61fc480a3de0"
+      ],
+      [
+        "af858142-1b3a-4660-9b0f-61fc480a3de0",
+        "d6ae4cc5-57e1-4e77-bca2-bb0b8c3c5701"
+      ],
+      [
+        "af858142-1b3a-4660-9b0f-61fc480a3de0",
+        "28c45b99-9c6c-46f1-9778-aa6fbd6c6831"
+      ],
+      [
+        "72ec1ef7-6229-424e-ac2f-b4d020f50dbb",
+        "6babf80e-bc7a-41e1-9454-0e55964455d5"
+      ],
+      [
+        "5c8d7d28-c06e-45b9-9350-d4cc3627946e",
+        "a60bab27-1a84-4b0f-b3fb-18cfac98073b"
+      ]
+    ]
+  },
+  "stepsbystage": {
+    "dumphepmc": [
+      {
+        "_nodeid": "d73211db-86be-491f-b0ab-5ad302e46a46"
+      }
+    ],
+    "evgen_truthana": [
+      {
+        "_offset": "/evgen_truthana/0",
+        "init": [
+          {
+            "_nodeid": "f1e9c822-3297-41af-812e-90f066294d3b"
+          }
+        ],
+        "truth_analysis": [
+          {
+            "_nodeid": "0d4bc1e1-decc-4e70-83f8-4e181e78e7b9"
+          }
+        ]
+      }
+    ],
+    "truth_derivation": [
+      {
+        "_nodeid": "dc690e8d-f2d1-4ddb-adc5-2f683d7d746d"
+      }
+    ],
+    "sim_reco": [
+      {
+        "_offset": "/sim_reco/0",
+        "init": [
+          {
+            "_nodeid": "2c1c6484-430f-4e82-a1ce-d8a3ebb4187d"
+          }
+        ],
+        "digitization": [
+          {
+            "_nodeid": "62d02a2b-776c-49e2-a379-e346216d43f5"
+          }
+        ],
+        "reconstruction": [
+          {
+            "_nodeid": "5c8d7d28-c06e-45b9-9350-d4cc3627946e"
+          }
+        ],
+        "simulation": [
+          {
+            "_nodeid": "a3fe60b2-9926-4995-92b7-b4d2a66a9230"
+          }
+        ]
+      }
+    ],
+    "init": [
+      {
+        "_nodeid": "76e98a8a-0183-41ba-9b65-705b887a8812"
+      }
+    ],
+    "derivation": [
+      {
+        "_nodeid": "a60bab27-1a84-4b0f-b3fb-18cfac98073b"
+      }
+    ],
+    "madgraph_gen": [
+      {
+        "_offset": "/madgraph_gen/0",
+        "init": [
+          {
+            "_nodeid": "4d609770-bb50-4d11-a253-03d290d0ea4d"
+          }
+        ],
+        "generate": [
+          {
+            "_nodeid": "6babf80e-bc7a-41e1-9454-0e55964455d5"
+          }
+        ],
+        "prepare": [
+          {
+            "_nodeid": "72ec1ef7-6229-424e-ac2f-b4d020f50dbb"
+          }
+        ]
+      }
+    ],
+    "phenoflow": [
+      {
+        "_offset": "/phenoflow/0",
+        "init": [
+          {
+            "_nodeid": "af858142-1b3a-4660-9b0f-61fc480a3de0"
+          }
+        ],
+        "delphes": [
+          {
+            "_nodeid": "28c45b99-9c6c-46f1-9778-aa6fbd6c6831"
+          }
+        ],
+        "rivet": [
+          {
+            "_nodeid": "d6ae4cc5-57e1-4e77-bca2-bb0b8c3c5701"
+          }
+        ],
+        "rivetplots": [
+          {
+            "_nodeid": "0538e0d5-4a9c-4548-ace4-a12a0e977eed"
+          }
+        ]
+      }
+    ]
+  },
+  "bookkeeping": {
+    "sim_reco": {
+      "0": {
+        "_meta": {
+          "rules": [
+            "c56aaebc-f528-465d-b992-1b0da7a731b7",
+            "7435319f-6aae-41cb-8417-aa5b4239cefd",
+            "cae878b7-8aa6-4576-9855-2d05a67c4382",
+            "b6a9cb5b-2271-4ccc-abd5-9cc87dfaca37"
+          ],
+          "steps": [
+            "2c1c6484-430f-4e82-a1ce-d8a3ebb4187d",
+            "a3fe60b2-9926-4995-92b7-b4d2a66a9230",
+            "62d02a2b-776c-49e2-a379-e346216d43f5",
+            "5c8d7d28-c06e-45b9-9350-d4cc3627946e"
+          ]
+        }
+      }
+    },
+    "evgen_truthana": {
+      "0": {
+        "_meta": {
+          "rules": [
+            "d9d74c6e-f8b9-44fc-ad7a-cd7e78d0a326",
+            "eaa95317-2b14-4815-add9-ff5d4c60824e"
+          ],
+          "steps": [
+            "f1e9c822-3297-41af-812e-90f066294d3b",
+            "0d4bc1e1-decc-4e70-83f8-4e181e78e7b9"
+          ]
+        }
+      }
+    },
+    "_meta": {
+      "rules": [
+        "9cc6a00d-4c81-433f-8534-a6e33f46e57f",
+        "c1bef083-f6af-443a-814b-f9e7023adfb0",
+        "ac75d839-46e8-45e5-bdfb-b3868ecc4c14",
+        "f085c1a9-d3c6-4ba6-abcb-a66b57e2c34a",
+        "685684ae-b7ab-407d-aba1-741b64db38bb",
+        "c4a53bb5-b4a1-436b-a8e9-36c8824fdd03",
+        "3205d9f0-d687-4d19-97cf-bb9ec3e72c30",
+        "fe02bcb8-0245-4bef-9bb4-9754bfd61e88"
+      ],
+      "steps": [
+        "76e98a8a-0183-41ba-9b65-705b887a8812",
+        "dc690e8d-f2d1-4ddb-adc5-2f683d7d746d",
+        "d73211db-86be-491f-b0ab-5ad302e46a46",
+        "a60bab27-1a84-4b0f-b3fb-18cfac98073b"
+      ]
+    },
+    "phenoflow": {
+      "0": {
+        "_meta": {
+          "rules": [
+            "27978883-de07-4ee2-acbb-315adbf29fe3",
+            "bafd03dc-67da-4168-a320-7908a540ecbe",
+            "6144e592-359c-4811-a74c-c98b475cb204",
+            "ac3f3bf2-7c91-462f-8a66-67294df7828e"
+          ],
+          "steps": [
+            "af858142-1b3a-4660-9b0f-61fc480a3de0",
+            "28c45b99-9c6c-46f1-9778-aa6fbd6c6831",
+            "d6ae4cc5-57e1-4e77-bca2-bb0b8c3c5701",
+            "0538e0d5-4a9c-4548-ace4-a12a0e977eed"
+          ]
+        }
+      }
+    },
+    "madgraph_gen": {
+      "0": {
+        "_meta": {
+          "rules": [
+            "dcbe9382-6509-4797-ab9f-572979b37eb6",
+            "0f9b1638-522d-4e0b-b19c-7357bd5fcd83",
+            "649f4fc2-6ee1-4228-ac07-0853a50c36d9"
+          ],
+          "steps": [
+            "4d609770-bb50-4d11-a253-03d290d0ea4d",
+            "72ec1ef7-6229-424e-ac2f-b4d020f50dbb",
+            "6babf80e-bc7a-41e1-9454-0e55964455d5"
+          ]
+        }
+      }
+    }
+  }
+}

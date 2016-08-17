@@ -1,6 +1,5 @@
 /**
- * Provides the mechanism to visualize yandage workflows
- * using an interactive graph layout.
+ * Provides the mechanism to generate the graph layout for yandage workflow instances
  * @author Eamonn Maguire <eamonnmag@gmail.com>
  */
 var cap_workflow_vis_instance = (function () {
@@ -9,37 +8,54 @@ var cap_workflow_vis_instance = (function () {
     var group_count = 0;
     var node_mapping = {};
 
-    function processSubchain(subchain, parent_group) {
-        for (var _subchain_idx in subchain) {
+    /**
+     * Recursively finds the groups and subgroups in a graph to create the proper
+     * nesting behaviour
+     * @param data
+     * @param parent - root to attach results to.
+     */
+    function processGroups(data, parent) {
+
+        var _group_def = parent;
+        if (data['_meta']) {
+            _group_def = {'leaves': [], 'groups': [], 'subgroups': [], 'id': group_count};
+            parent.subgroups.push(_group_def);
+            parent.groups.push(group_count);
+
             group_count += 1;
-            var _group_def = {'leaves': [], 'groups': []};
-            parent_group.push(group_count);
-            for (var _step_idx in subchain[_subchain_idx]._meta.steps) {
-                _group_def.leaves.push(node_mapping[subchain[_subchain_idx]._meta.steps[_step_idx]]);
+            for (var _step_idx in data['_meta'].steps) {
+                _group_def.leaves.push(node_mapping[data['_meta'].steps[_step_idx]]);
             }
-            graph.groups.push(_group_def);
+        }
+        for (var key in data) {
+            if (key !== '_meta') {
+                for (var _sub_key in data[key]) {
+                    var parent = _group_def;
+                    processGroups(data[key][_sub_key], parent);
+                }
+            }
+        }
 
-            if ('subchain' in subchain[_subchain_idx])
-                processSubchain(subchain[_idx].subchain);
+    }
+
+    /**
+     * Flattens out the subgroups
+     * @param processed_group
+     * @param extracted_groups
+     */
+    function extractGroups(processed_group, extracted_groups) {
+        for (var subgroup_idx in processed_group.subgroups) {
+            var _subgroup_obj = processed_group.subgroups[subgroup_idx];
+            extracted_groups.push({
+                'id': _subgroup_obj.id,
+                'groups': _subgroup_obj.groups,
+                'leaves': _subgroup_obj.leaves
+            });
+
+            if ('subgroups' in _subgroup_obj) extractGroups(_subgroup_obj, extracted_groups);
         }
     }
 
-    function processGroups(data) {
-
-        var _group_def = {'leaves': [], 'groups': []};
-        for (var _step_idx in data._meta.steps) {
-            _group_def.leaves.push(node_mapping[data._meta.steps[_step_idx]]);
-        }
-
-        graph.groups.push(_group_def);
-
-        if ('subchain' in data)
-            processSubchain(data.subchain, _group_def.groups);
-
-        console.log(graph.groups);
-
-
-    }
 
     /**
      *
@@ -47,8 +63,6 @@ var cap_workflow_vis_instance = (function () {
      * @returns {Array}
      */
     function generateGraph(data) {
-        console.log(data.dag);
-
         node_mapping = {};
 
         data.dag.nodes.forEach(function (d, i) {
@@ -66,7 +80,13 @@ var cap_workflow_vis_instance = (function () {
         graph.nodes = data.dag.nodes;
         graph.links = data.dag.edges;
 
-        processGroups(data.bookkeeping);
+        var parent = {'subgroups': [], 'groups': []};
+        processGroups(data.bookkeeping, parent);
+
+        var extracted_groups = [];
+        extractGroups(parent, extracted_groups);
+
+        graph.groups = extracted_groups;
 
         return graph;
     }
