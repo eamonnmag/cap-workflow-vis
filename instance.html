@@ -140,25 +140,11 @@
 <script src="assets/js/cap-workflow-vis.js"></script>
 
 <script type="text/javascript">
-    //    d3.json('data/template/yadage_susy.json', function (data) {
-    //        console.log(data);
-    //        analysis_workflow_vis.render('#workflow1', data, {width: 900, height: 800})
-    //    });
 
-    d3.json('data/template/workflow_only.json', function (data) {
+    d3.json('data/instance/yadage_instance_1.json', function (data) {
         console.log(data);
         cap_workflow_vis.render('#workflow1', data, {width: 900, height: 800})
     });
-
-//    d3.json('data/instance/yadage_instance.json', function (data) {
-//        console.log(data);
-//        analysis_workflow_vis.render('#workflow1', data, {width: 900, height: 800})
-//    });
-
-//        d3.json('data/template/yadage_delphes_template.json', function (data) {
-//            console.log(data);
-//            analysis_workflow_vis.render('#workflow1', data, {width: 900, height: 800})
-//        });
 
 </script>
 </html>
