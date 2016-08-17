@@ -35,27 +35,7 @@ var cap_workflow_vis_instance = (function () {
                 }
             }
         }
-
     }
-
-    /**
-     * Flattens out the subgroups
-     * @param processed_group
-     * @param extracted_groups
-     */
-    function extractGroups(processed_group, extracted_groups) {
-        for (var subgroup_idx in processed_group.subgroups) {
-            var _subgroup_obj = processed_group.subgroups[subgroup_idx];
-            extracted_groups.push({
-                'id': _subgroup_obj.id,
-                'groups': _subgroup_obj.groups,
-                'leaves': _subgroup_obj.leaves
-            });
-
-            if ('subgroups' in _subgroup_obj) extractGroups(_subgroup_obj, extracted_groups);
-        }
-    }
-
 
     /**
      *
@@ -84,7 +64,7 @@ var cap_workflow_vis_instance = (function () {
         processGroups(data.bookkeeping, parent);
 
         var extracted_groups = [];
-        extractGroups(parent, extracted_groups);
+        cap_workflow_vis.extractGroups(parent, extracted_groups);
 
         graph.groups = extracted_groups;
 

@@ -1,1 +1,1070 @@
-{"stages": [{"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["init"]}, "name": "parallel_production", "scheduler": {"scheduler_type": "multistep-stage", "scatter": {"method": "zip", "parameters": ["generate_seed"]}, "parameters": [{"value": {"output": "simulation_seed", "stages": "init", "flatten": true}, "key": "simulation_seed"}, {"value": {"output": "param_card", "stages": "init", "flatten": true}, "key": "param_card"}, {"value": {"output": "proc_card", "stages": "init", "flatten": true}, "key": "proc_card"}, {"value": {"output": "events_per_branch", "stages": "init", "flatten": true}, "key": "nevents"}, {"value": {"output": "generation_seeds", "stages": "init", "flatten": true}, "key": "generate_seed"}, {"value": {"output": "DSID", "stages": "init", "flatten": true}, "key": "DSID"}], "workflow": {"stages": [{"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["init"]}, "name": "madgraph_gen", "scheduler": {"scheduler_type": "singlestep-stage", "parameters": [{"value": {"output": "param_card", "stages": "init", "unwrap": true}, "key": "param_card"}, {"value": {"output": "proc_card", "stages": "init", "unwrap": true}, "key": "proc_card"}, {"value": {"output": "nevents", "stages": "init", "unwrap": true}, "key": "nevents"}, {"value": "lukas.heinrich@cern.ch", "key": "contact"}, {"value": "exotic,BSMHiggs", "key": "keywords"}, {"value": {"output": "generate_seed", "stages": "init", "unwrap": true}, "key": "generate_seed"}, {"value": {"output": "DSID", "stages": "init", "unwrap": true}, "key": "DSID"}], "workflow": {"stages": [{"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["init"]}, "name": "prepare", "scheduler": {"step": {"process": {"cmd": "python jo_maker/make_jobo.py jo_maker/template.py {evgen_joboptions} {keywords} dummy_description example_evgen {proc_card} {param_card} {contact}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"joboptions": "evgen_joboptions"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/generic_evgen", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": ["CVMFS"]}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": {"output": "keywords", "stages": "init", "unwrap": true}, "key": "keywords"}, {"value": {"output": "param_card", "stages": "init", "unwrap": true}, "key": "param_card"}, {"value": {"output": "contact", "stages": "init", "unwrap": true}, "key": "contact"}, {"value": {"output": "proc_card", "stages": "init", "unwrap": true}, "key": "proc_card"}, {"value": "{workdir}/jo.py", "key": "evgen_joboptions"}]}}, {"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["prepare"]}, "name": "generate", "scheduler": {"step": {"process": {"cmd": "source resources/env.sh && Generate_tf.py --ecmEnergy={ecmEnergy} --runNumber={DSID} --firstEvent=1 --asetup=\"\" --maxEvents={nevents} --randomSeed={seed} --jobConfig={joboptions} --outputEVNTFile={ouputEVNT}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"ouputEVNT": "ouputEVNT"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/generic_evgen", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": ["CVMFS"]}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": {"output": "joboptions", "stages": "prepare", "unwrap": true}, "key": "joboptions"}, {"value": {"output": "nevents", "stages": "init", "unwrap": true}, "key": "nevents"}, {"value": {"output": "generate_seed", "stages": "init", "unwrap": true}, "key": "seed"}, {"value": 13000, "key": "ecmEnergy"}, {"value": "{workdir}/my.EVNT.pool.root", "key": "ouputEVNT"}, {"value": {"output": "DSID", "stages": "init", "unwrap": true}, "key": "DSID"}]}}]}}}, {"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["madgraph_gen"]}, "name": "dumphepmc", "scheduler": {"step": {"process": {"cmd": "source resources/env.sh && athena.py -c '\"'\"'INPUT=[\"{inputevgen}\"];OUTPUT=\"{outputhepmc}\"'\"'\"' McParticleAlgs/GenEventAsciiWriter_jobOptions.py", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"hepmcfile": "outputhepmc"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/generic_evgen", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": ["CVMFS"]}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": {"output": "ouputEVNT", "stages": "madgraph_gen.[*].generate", "unwrap": true}, "key": "inputevgen"}, {"value": "{workdir}/output.hepmc", "key": "outputhepmc"}]}}, {"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["madgraph_gen"]}, "name": "evgen_truthana", "scheduler": {"scheduler_type": "singlestep-stage", "parameters": [{"value": {"output": "ouputEVNT", "stages": "madgraph_gen.[*].generate", "unwrap": true}, "key": "evgenfile"}], "workflow": {"stages": [{"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["init"]}, "name": "truth_analysis", "scheduler": {"step": {"process": {"cmd": "source ~/.bashrc && MyApp.exe {evgenfile} {plotfile}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"plots": "plotfile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/bnltutorial", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": {"output": "evgenfile", "stages": "init", "unwrap": true}, "key": "evgenfile"}, {"value": "{workdir}/analysis_plots.png", "key": "plotfile"}]}}]}}}, {"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["dumphepmc"]}, "name": "phenoflow", "scheduler": {"scheduler_type": "singlestep-stage", "parameters": [{"value": {"output": "hepmcfile", "stages": "dumphepmc", "unwrap": true}, "key": "hepmcfile"}, {"value": "MC_GENERIC", "key": "rivet_analysis"}], "workflow": {"stages": [{"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["init"]}, "name": "rivet", "scheduler": {"step": {"process": {"cmd": "rivet -a {analysis} -H {outputyoda} {inputhepmc}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"yodafile": "outputyoda"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/rivet-with-tex", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": "{workdir}/output.yoda", "key": "outputyoda"}, {"value": {"output": "hepmcfile", "stages": "init"}, "key": "inputhepmc"}, {"value": {"output": "rivet_analysis", "stages": "init", "unwrap": true}, "key": "analysis"}]}}, {"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["rivet"]}, "name": "rivetplots", "scheduler": {"step": {"process": {"cmd": "rivet-mkhtml -o {yodaplots} {inputyoda}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"plots": "yodaplots"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/rivet-with-tex", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": {"output": "yodafile", "stages": "rivet"}, "key": "inputyoda"}, {"value": "{workdir}/plots", "key": "yodaplots"}]}}, {"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["init"]}, "name": "delphes", "scheduler": {"step": {"process": {"cmd": "DelphesHepMC  {delphes_card} {outputroot} {inputhepmc} && root2lhco {outputroot} {outputlhco}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"lhcofile": "outputlhco", "rootfile": "outputroot"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/root-delphes", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": []}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": "{workdir}/output.lhco", "key": "outputlhco"}, {"value": "delphes/cards/delphes_card_ATLAS.tcl", "key": "delphes_card"}, {"value": "{workdir}/output.root", "key": "outputroot"}, {"value": {"output": "hepmcfile", "stages": "init"}, "key": "inputhepmc"}]}}]}}}, {"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["madgraph_gen"]}, "name": "sim_reco", "scheduler": {"scheduler_type": "singlestep-stage", "parameters": [{"value": {"output": "ouputEVNT", "stages": "madgraph_gen.[*].generate", "unwrap": true}, "key": "evgen"}, {"value": {"output": "simulation_seed", "stages": "init", "unwrap": true}, "key": "simulation_seed"}, {"value": -1, "key": "nevents"}], "workflow": {"stages": [{"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["init"]}, "name": "simulation", "scheduler": {"step": {"process": {"cmd": "source resources/env_with_voms.sh AtlasProduction,20.7.5.1,here && Sim_tf.py --AMIConfig {AMItag} --inputEvgenFile {evgenfile} --outputHitsFile {hitsfile} --maxEvents {maxevts} --skipEvents 0 --randomSeed {simseed}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"hitsfile": "hitsfile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/athena_trfsbase", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": ["CVMFS", "GRIDProxy"]}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": {"output": "simulation_seed", "stages": "init", "unwrap": true}, "key": "simseed"}, {"value": {"output": "evgen", "stages": "init", "unwrap": true}, "key": "evgenfile"}, {"value": "a766", "key": "AMItag"}, {"value": "{workdir}/my.HITS.pool.root", "key": "hitsfile"}, {"value": {"output": "nevents", "stages": "init", "unwrap": true}, "key": "maxevts"}]}}, {"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["simulation"]}, "name": "digitization", "scheduler": {"step": {"process": {"cmd": "source resources/env.sh AtlasProduction,20.7.5.1,here && Reco_tf.py --inputHitsFile {hitsfile} --outputRDOFile {rdofile} --maxEvents {maxevts} --skipEvents 0 --conditionsTag {conditions} --geometryVersion {geometry}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"rdofile": "rdofile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/athena_trfsbase", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": ["CVMFS"]}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": "{workdir}/my.RDO.pool.root", "key": "rdofile"}, {"value": "default:OFLCOND-RUN12-SDR-19", "key": "conditions"}, {"value": {"output": "hitsfile", "stages": "simulation", "unwrap": true}, "key": "hitsfile"}, {"value": "default:ATLAS-R2-2015-03-01-00_VALIDATION", "key": "geometry"}, {"value": -1, "key": "maxevts"}]}}, {"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["digitization"]}, "name": "reconstruction", "scheduler": {"step": {"process": {"cmd": "source resources/env_with_voms.sh AtlasProduction,20.7.5.1,here && Reco_tf.py --inputRDOFile {rdofile} --outputESDFile {esdfile} --outputAODFile {aodfile} --maxEvents {maxevts} --skipEvents 0 --conditionsTag {conditions} --geometryVersion {geometry} --postInclude default:RecJobTransforms/UseFrontier.py", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"esdfile": "esdfile", "aodfile": "aodfile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/athena_trfsbase", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": ["CVMFS", "GRIDProxy"]}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": "{workdir}/my.ESD.pool.root", "key": "esdfile"}, {"value": "default:ATLAS-R2-2015-03-01-00", "key": "geometry"}, {"value": {"output": "rdofile", "stages": "digitization", "unwrap": true}, "key": "rdofile"}, {"value": "{workdir}/my.AOD.pool.root", "key": "aodfile"}, {"value": -1, "key": "maxevts"}, {"value": "default:OFLCOND-MC15c-SDR-09", "key": "conditions"}]}}]}}}, {"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["sim_reco"]}, "name": "derivation", "scheduler": {"step": {"process": {"cmd": "source resources/env_with_voms.sh AtlasDerivation,20.7.6.2,here && Reco_tf.py --AMI {ptag} --inputAODFile {aodfile} --outputDAODFile my.DAOD.pool.root && cp *my.DAOD.pool.root {daodfile}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"daodfile": "daodfile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/athena_trfsbase", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": ["CVMFS", "GRIDProxy"]}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": "p2656", "key": "ptag"}, {"value": {"output": "aodfile", "stages": "sim_reco.[*].reconstruction", "unwrap": true}, "key": "aodfile"}, {"value": "{workdir}/my.DAOD.pool.root", "key": "daodfile"}]}}, {"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["madgraph_gen"]}, "name": "truth_derivation", "scheduler": {"step": {"process": {"cmd": "source resources/env.sh AtlasDerivation,20.7.6.2,here && Reco_tf.py --inputEVNTFile {evgenfile} --outputDAODFile my.DAOD.pool.root --reductionConf TRUTH0 && cp *my.DAOD.pool.root {truthderivation}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"truthderiv": "truthderivation"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/athena_trfsbase", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": ["CVMFS"]}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": {"output": "ouputEVNT", "stages": "madgraph_gen.[*].generate", "unwrap": true}, "key": "evgenfile"}, {"value": "{workdir}/my.TRUTH_DAOD.pool.root", "key": "truthderivation"}]}}]}}}, {"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["parallel_production.[*].derivation"]}, "name": "reco_daod_merge", "scheduler": {"step": {"process": {"cmd": "source resources/env.sh AtlasDerivation,20.7.6.2,here && hadd {mergedfile} {rootfiles}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"mergedfile": "mergedfile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/athena_trfsbase", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": ["CVMFS"]}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": "{workdir}/merged.DAOD.reco.pool.root", "key": "mergedfile"}, {"value": {"output": "daodfile", "stages": "parallel_production.[*].derivation", "flatten": true}, "key": "rootfiles"}]}}, {"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["parallel_production.[*].truth_derivation"]}, "name": "truth_daod_merge", "scheduler": {"step": {"process": {"cmd": "source resources/env.sh AtlasDerivation,20.7.6.2,here && hadd {mergedfile} {rootfiles}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"mergedfile": "mergedfile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/athena_trfsbase", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": ["CVMFS"]}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": "{workdir}/merged.DAOD.truth.pool.root", "key": "mergedfile"}, {"value": {"output": "truthderiv", "stages": "parallel_production.[*].truth_derivation", "flatten": true}, "key": "rootfiles"}]}}, {"dependencies": {"dependency_type": "jsonpath_ready", "expressions": ["parallel_production.[*].phenoflow.[*].delphes"]}, "name": "delphes_merge", "scheduler": {"step": {"process": {"cmd": "source resources/env.sh AtlasDerivation,20.7.6.2,here && hadd {mergedfile} {rootfiles}", "process_type": "string-interpolated-cmd"}, "publisher": {"publisher_type": "frompar-pub", "outputmap": {"mergedfile": "mergedfile"}}, "environment": {"imagetag": "latest", "image": "lukasheinrich/athena_trfsbase", "envscript": "", "environment_type": "docker-encapsulated", "env": {}, "resources": ["CVMFS"]}}, "scheduler_type": "singlestep-stage", "parameters": [{"value": "{workdir}/merged.delphes.root", "key": "mergedfile"}, {"value": {"output": "rootfile", "stages": "parallel_production.[*].phenoflow.[*].delphes", "flatten": true}, "key": "rootfiles"}]}}]}
+{
+  "stages": [
+    {
+      "dependencies": {
+        "dependency_type": "jsonpath_ready",
+        "expressions": [
+          "init"
+        ]
+      },
+      "name": "parallel_production",
+      "scheduler": {
+        "scheduler_type": "multistep-stage",
+        "scatter": {
+          "method": "zip",
+          "parameters": [
+            "generate_seed"
+          ]
+        },
+        "parameters": [
+          {
+            "value": {
+              "output": "simulation_seed",
+              "stages": "init",
+              "flatten": true
+            },
+            "key": "simulation_seed"
+          },
+          {
+            "value": {
+              "output": "param_card",
+              "stages": "init",
+              "flatten": true
+            },
+            "key": "param_card"
+          },
+          {
+            "value": {
+              "output": "proc_card",
+              "stages": "init",
+              "flatten": true
+            },
+            "key": "proc_card"
+          },
+          {
+            "value": {
+              "output": "events_per_branch",
+              "stages": "init",
+              "flatten": true
+            },
+            "key": "nevents"
+          },
+          {
+            "value": {
+              "output": "generation_seeds",
+              "stages": "init",
+              "flatten": true
+            },
+            "key": "generate_seed"
+          },
+          {
+            "value": {
+              "output": "DSID",
+              "stages": "init",
+              "flatten": true
+            },
+            "key": "DSID"
+          }
+        ],
+        "workflow": {
+          "stages": [
+            {
+              "dependencies": {
+                "dependency_type": "jsonpath_ready",
+                "expressions": [
+                  "init"
+                ]
+              },
+              "name": "madgraph_gen",
+              "scheduler": {
+                "scheduler_type": "singlestep-stage",
+                "parameters": [
+                  {
+                    "value": {
+                      "output": "param_card",
+                      "stages": "init",
+                      "unwrap": true
+                    },
+                    "key": "param_card"
+                  },
+                  {
+                    "value": {
+                      "output": "proc_card",
+                      "stages": "init",
+                      "unwrap": true
+                    },
+                    "key": "proc_card"
+                  },
+                  {
+                    "value": {
+                      "output": "nevents",
+                      "stages": "init",
+                      "unwrap": true
+                    },
+                    "key": "nevents"
+                  },
+                  {
+                    "value": "lukas.heinrich@cern.ch",
+                    "key": "contact"
+                  },
+                  {
+                    "value": "exotic,BSMHiggs",
+                    "key": "keywords"
+                  },
+                  {
+                    "value": {
+                      "output": "generate_seed",
+                      "stages": "init",
+                      "unwrap": true
+                    },
+                    "key": "generate_seed"
+                  },
+                  {
+                    "value": {
+                      "output": "DSID",
+                      "stages": "init",
+                      "unwrap": true
+                    },
+                    "key": "DSID"
+                  }
+                ],
+                "workflow": {
+                  "stages": [
+                    {
+                      "dependencies": {
+                        "dependency_type": "jsonpath_ready",
+                        "expressions": [
+                          "init"
+                        ]
+                      },
+                      "name": "prepare",
+                      "scheduler": {
+                        "step": {
+                          "process": {
+                            "cmd": "python jo_maker/make_jobo.py jo_maker/template.py {evgen_joboptions} {keywords} dummy_description example_evgen {proc_card} {param_card} {contact}",
+                            "process_type": "string-interpolated-cmd"
+                          },
+                          "publisher": {
+                            "publisher_type": "frompar-pub",
+                            "outputmap": {
+                              "joboptions": "evgen_joboptions"
+                            }
+                          },
+                          "environment": {
+                            "imagetag": "latest",
+                            "image": "lukasheinrich/generic_evgen",
+                            "envscript": "",
+                            "environment_type": "docker-encapsulated",
+                            "env": {},
+                            "resources": [
+                              "CVMFS"
+                            ]
+                          }
+                        },
+                        "scheduler_type": "singlestep-stage",
+                        "parameters": [
+                          {
+                            "value": {
+                              "output": "keywords",
+                              "stages": "init",
+                              "unwrap": true
+                            },
+                            "key": "keywords"
+                          },
+                          {
+                            "value": {
+                              "output": "param_card",
+                              "stages": "init",
+                              "unwrap": true
+                            },
+                            "key": "param_card"
+                          },
+                          {
+                            "value": {
+                              "output": "contact",
+                              "stages": "init",
+                              "unwrap": true
+                            },
+                            "key": "contact"
+                          },
+                          {
+                            "value": {
+                              "output": "proc_card",
+                              "stages": "init",
+                              "unwrap": true
+                            },
+                            "key": "proc_card"
+                          },
+                          {
+                            "value": "{workdir}/jo.py",
+                            "key": "evgen_joboptions"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "dependencies": {
+                        "dependency_type": "jsonpath_ready",
+                        "expressions": [
+                          "prepare"
+                        ]
+                      },
+                      "name": "generate",
+                      "scheduler": {
+                        "step": {
+                          "process": {
+                            "cmd": "source resources/env.sh && Generate_tf.py --ecmEnergy={ecmEnergy} --runNumber={DSID} --firstEvent=1 --asetup=\"\" --maxEvents={nevents} --randomSeed={seed} --jobConfig={joboptions} --outputEVNTFile={ouputEVNT}",
+                            "process_type": "string-interpolated-cmd"
+                          },
+                          "publisher": {
+                            "publisher_type": "frompar-pub",
+                            "outputmap": {
+                              "ouputEVNT": "ouputEVNT"
+                            }
+                          },
+                          "environment": {
+                            "imagetag": "latest",
+                            "image": "lukasheinrich/generic_evgen",
+                            "envscript": "",
+                            "environment_type": "docker-encapsulated",
+                            "env": {},
+                            "resources": [
+                              "CVMFS"
+                            ]
+                          }
+                        },
+                        "scheduler_type": "singlestep-stage",
+                        "parameters": [
+                          {
+                            "value": {
+                              "output": "joboptions",
+                              "stages": "prepare",
+                              "unwrap": true
+                            },
+                            "key": "joboptions"
+                          },
+                          {
+                            "value": {
+                              "output": "nevents",
+                              "stages": "init",
+                              "unwrap": true
+                            },
+                            "key": "nevents"
+                          },
+                          {
+                            "value": {
+                              "output": "generate_seed",
+                              "stages": "init",
+                              "unwrap": true
+                            },
+                            "key": "seed"
+                          },
+                          {
+                            "value": 13000,
+                            "key": "ecmEnergy"
+                          },
+                          {
+                            "value": "{workdir}/my.EVNT.pool.root",
+                            "key": "ouputEVNT"
+                          },
+                          {
+                            "value": {
+                              "output": "DSID",
+                              "stages": "init",
+                              "unwrap": true
+                            },
+                            "key": "DSID"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "dependencies": {
+                "dependency_type": "jsonpath_ready",
+                "expressions": [
+                  "madgraph_gen"
+                ]
+              },
+              "name": "dumphepmc",
+              "scheduler": {
+                "step": {
+                  "process": {
+                    "cmd": "source resources/env.sh && athena.py -c '\"'\"'INPUT=[\"{inputevgen}\"];OUTPUT=\"{outputhepmc}\"'\"'\"' McParticleAlgs/GenEventAsciiWriter_jobOptions.py",
+                    "process_type": "string-interpolated-cmd"
+                  },
+                  "publisher": {
+                    "publisher_type": "frompar-pub",
+                    "outputmap": {
+                      "hepmcfile": "outputhepmc"
+                    }
+                  },
+                  "environment": {
+                    "imagetag": "latest",
+                    "image": "lukasheinrich/generic_evgen",
+                    "envscript": "",
+                    "environment_type": "docker-encapsulated",
+                    "env": {},
+                    "resources": [
+                      "CVMFS"
+                    ]
+                  }
+                },
+                "scheduler_type": "singlestep-stage",
+                "parameters": [
+                  {
+                    "value": {
+                      "output": "ouputEVNT",
+                      "stages": "madgraph_gen.[*].generate",
+                      "unwrap": true
+                    },
+                    "key": "inputevgen"
+                  },
+                  {
+                    "value": "{workdir}/output.hepmc",
+                    "key": "outputhepmc"
+                  }
+                ]
+              }
+            },
+            {
+              "dependencies": {
+                "dependency_type": "jsonpath_ready",
+                "expressions": [
+                  "madgraph_gen"
+                ]
+              },
+              "name": "evgen_truthana",
+              "scheduler": {
+                "scheduler_type": "singlestep-stage",
+                "parameters": [
+                  {
+                    "value": {
+                      "output": "ouputEVNT",
+                      "stages": "madgraph_gen.[*].generate",
+                      "unwrap": true
+                    },
+                    "key": "evgenfile"
+                  }
+                ],
+                "workflow": {
+                  "stages": [
+                    {
+                      "dependencies": {
+                        "dependency_type": "jsonpath_ready",
+                        "expressions": [
+                          "init"
+                        ]
+                      },
+                      "name": "truth_analysis",
+                      "scheduler": {
+                        "step": {
+                          "process": {
+                            "cmd": "source ~/.bashrc && MyApp.exe {evgenfile} {plotfile}",
+                            "process_type": "string-interpolated-cmd"
+                          },
+                          "publisher": {
+                            "publisher_type": "frompar-pub",
+                            "outputmap": {
+                              "plots": "plotfile"
+                            }
+                          },
+                          "environment": {
+                            "imagetag": "latest",
+                            "image": "lukasheinrich/bnltutorial",
+                            "envscript": "",
+                            "environment_type": "docker-encapsulated",
+                            "env": {},
+                            "resources": []
+                          }
+                        },
+                        "scheduler_type": "singlestep-stage",
+                        "parameters": [
+                          {
+                            "value": {
+                              "output": "evgenfile",
+                              "stages": "init",
+                              "unwrap": true
+                            },
+                            "key": "evgenfile"
+                          },
+                          {
+                            "value": "{workdir}/analysis_plots.png",
+                            "key": "plotfile"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "dependencies": {
+                "dependency_type": "jsonpath_ready",
+                "expressions": [
+                  "dumphepmc"
+                ]
+              },
+              "name": "phenoflow",
+              "scheduler": {
+                "scheduler_type": "singlestep-stage",
+                "parameters": [
+                  {
+                    "value": {
+                      "output": "hepmcfile",
+                      "stages": "dumphepmc",
+                      "unwrap": true
+                    },
+                    "key": "hepmcfile"
+                  },
+                  {
+                    "value": "MC_GENERIC",
+                    "key": "rivet_analysis"
+                  }
+                ],
+                "workflow": {
+                  "stages": [
+                    {
+                      "dependencies": {
+                        "dependency_type": "jsonpath_ready",
+                        "expressions": [
+                          "init"
+                        ]
+                      },
+                      "name": "rivet",
+                      "scheduler": {
+                        "step": {
+                          "process": {
+                            "cmd": "rivet -a {analysis} -H {outputyoda} {inputhepmc}",
+                            "process_type": "string-interpolated-cmd"
+                          },
+                          "publisher": {
+                            "publisher_type": "frompar-pub",
+                            "outputmap": {
+                              "yodafile": "outputyoda"
+                            }
+                          },
+                          "environment": {
+                            "imagetag": "latest",
+                            "image": "lukasheinrich/rivet-with-tex",
+                            "envscript": "",
+                            "environment_type": "docker-encapsulated",
+                            "env": {},
+                            "resources": []
+                          }
+                        },
+                        "scheduler_type": "singlestep-stage",
+                        "parameters": [
+                          {
+                            "value": "{workdir}/output.yoda",
+                            "key": "outputyoda"
+                          },
+                          {
+                            "value": {
+                              "output": "hepmcfile",
+                              "stages": "init"
+                            },
+                            "key": "inputhepmc"
+                          },
+                          {
+                            "value": {
+                              "output": "rivet_analysis",
+                              "stages": "init",
+                              "unwrap": true
+                            },
+                            "key": "analysis"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "dependencies": {
+                        "dependency_type": "jsonpath_ready",
+                        "expressions": [
+                          "rivet"
+                        ]
+                      },
+                      "name": "rivetplots",
+                      "scheduler": {
+                        "step": {
+                          "process": {
+                            "cmd": "rivet-mkhtml -o {yodaplots} {inputyoda}",
+                            "process_type": "string-interpolated-cmd"
+                          },
+                          "publisher": {
+                            "publisher_type": "frompar-pub",
+                            "outputmap": {
+                              "plots": "yodaplots"
+                            }
+                          },
+                          "environment": {
+                            "imagetag": "latest",
+                            "image": "lukasheinrich/rivet-with-tex",
+                            "envscript": "",
+                            "environment_type": "docker-encapsulated",
+                            "env": {},
+                            "resources": []
+                          }
+                        },
+                        "scheduler_type": "singlestep-stage",
+                        "parameters": [
+                          {
+                            "value": {
+                              "output": "yodafile",
+                              "stages": "rivet"
+                            },
+                            "key": "inputyoda"
+                          },
+                          {
+                            "value": "{workdir}/plots",
+                            "key": "yodaplots"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "dependencies": {
+                        "dependency_type": "jsonpath_ready",
+                        "expressions": [
+                          "init"
+                        ]
+                      },
+                      "name": "delphes",
+                      "scheduler": {
+                        "step": {
+                          "process": {
+                            "cmd": "DelphesHepMC  {delphes_card} {outputroot} {inputhepmc} && root2lhco {outputroot} {outputlhco}",
+                            "process_type": "string-interpolated-cmd"
+                          },
+                          "publisher": {
+                            "publisher_type": "frompar-pub",
+                            "outputmap": {
+                              "lhcofile": "outputlhco",
+                              "rootfile": "outputroot"
+                            }
+                          },
+                          "environment": {
+                            "imagetag": "latest",
+                            "image": "lukasheinrich/root-delphes",
+                            "envscript": "",
+                            "environment_type": "docker-encapsulated",
+                            "env": {},
+                            "resources": []
+                          }
+                        },
+                        "scheduler_type": "singlestep-stage",
+                        "parameters": [
+                          {
+                            "value": "{workdir}/output.lhco",
+                            "key": "outputlhco"
+                          },
+                          {
+                            "value": "delphes/cards/delphes_card_ATLAS.tcl",
+                            "key": "delphes_card"
+                          },
+                          {
+                            "value": "{workdir}/output.root",
+                            "key": "outputroot"
+                          },
+                          {
+                            "value": {
+                              "output": "hepmcfile",
+                              "stages": "init"
+                            },
+                            "key": "inputhepmc"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "dependencies": {
+                "dependency_type": "jsonpath_ready",
+                "expressions": [
+                  "madgraph_gen"
+                ]
+              },
+              "name": "sim_reco",
+              "scheduler": {
+                "scheduler_type": "singlestep-stage",
+                "parameters": [
+                  {
+                    "value": {
+                      "output": "ouputEVNT",
+                      "stages": "madgraph_gen.[*].generate",
+                      "unwrap": true
+                    },
+                    "key": "evgen"
+                  },
+                  {
+                    "value": {
+                      "output": "simulation_seed",
+                      "stages": "init",
+                      "unwrap": true
+                    },
+                    "key": "simulation_seed"
+                  },
+                  {
+                    "value": -1,
+                    "key": "nevents"
+                  }
+                ],
+                "workflow": {
+                  "stages": [
+                    {
+                      "dependencies": {
+                        "dependency_type": "jsonpath_ready",
+                        "expressions": [
+                          "init"
+                        ]
+                      },
+                      "name": "simulation",
+                      "scheduler": {
+                        "step": {
+                          "process": {
+                            "cmd": "source resources/env_with_voms.sh AtlasProduction,20.7.5.1,here && Sim_tf.py --AMIConfig {AMItag} --inputEvgenFile {evgenfile} --outputHitsFile {hitsfile} --maxEvents {maxevts} --skipEvents 0 --randomSeed {simseed}",
+                            "process_type": "string-interpolated-cmd"
+                          },
+                          "publisher": {
+                            "publisher_type": "frompar-pub",
+                            "outputmap": {
+                              "hitsfile": "hitsfile"
+                            }
+                          },
+                          "environment": {
+                            "imagetag": "latest",
+                            "image": "lukasheinrich/athena_trfsbase",
+                            "envscript": "",
+                            "environment_type": "docker-encapsulated",
+                            "env": {},
+                            "resources": [
+                              "CVMFS",
+                              "GRIDProxy"
+                            ]
+                          }
+                        },
+                        "scheduler_type": "singlestep-stage",
+                        "parameters": [
+                          {
+                            "value": {
+                              "output": "simulation_seed",
+                              "stages": "init",
+                              "unwrap": true
+                            },
+                            "key": "simseed"
+                          },
+                          {
+                            "value": {
+                              "output": "evgen",
+                              "stages": "init",
+                              "unwrap": true
+                            },
+                            "key": "evgenfile"
+                          },
+                          {
+                            "value": "a766",
+                            "key": "AMItag"
+                          },
+                          {
+                            "value": "{workdir}/my.HITS.pool.root",
+                            "key": "hitsfile"
+                          },
+                          {
+                            "value": {
+                              "output": "nevents",
+                              "stages": "init",
+                              "unwrap": true
+                            },
+                            "key": "maxevts"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "dependencies": {
+                        "dependency_type": "jsonpath_ready",
+                        "expressions": [
+                          "simulation"
+                        ]
+                      },
+                      "name": "digitization",
+                      "scheduler": {
+                        "step": {
+                          "process": {
+                            "cmd": "source resources/env.sh AtlasProduction,20.7.5.1,here && Reco_tf.py --inputHitsFile {hitsfile} --outputRDOFile {rdofile} --maxEvents {maxevts} --skipEvents 0 --conditionsTag {conditions} --geometryVersion {geometry}",
+                            "process_type": "string-interpolated-cmd"
+                          },
+                          "publisher": {
+                            "publisher_type": "frompar-pub",
+                            "outputmap": {
+                              "rdofile": "rdofile"
+                            }
+                          },
+                          "environment": {
+                            "imagetag": "latest",
+                            "image": "lukasheinrich/athena_trfsbase",
+                            "envscript": "",
+                            "environment_type": "docker-encapsulated",
+                            "env": {},
+                            "resources": [
+                              "CVMFS"
+                            ]
+                          }
+                        },
+                        "scheduler_type": "singlestep-stage",
+                        "parameters": [
+                          {
+                            "value": "{workdir}/my.RDO.pool.root",
+                            "key": "rdofile"
+                          },
+                          {
+                            "value": "default:OFLCOND-RUN12-SDR-19",
+                            "key": "conditions"
+                          },
+                          {
+                            "value": {
+                              "output": "hitsfile",
+                              "stages": "simulation",
+                              "unwrap": true
+                            },
+                            "key": "hitsfile"
+                          },
+                          {
+                            "value": "default:ATLAS-R2-2015-03-01-00_VALIDATION",
+                            "key": "geometry"
+                          },
+                          {
+                            "value": -1,
+                            "key": "maxevts"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "dependencies": {
+                        "dependency_type": "jsonpath_ready",
+                        "expressions": [
+                          "digitization"
+                        ]
+                      },
+                      "name": "reconstruction",
+                      "scheduler": {
+                        "step": {
+                          "process": {
+                            "cmd": "source resources/env_with_voms.sh AtlasProduction,20.7.5.1,here && Reco_tf.py --inputRDOFile {rdofile} --outputESDFile {esdfile} --outputAODFile {aodfile} --maxEvents {maxevts} --skipEvents 0 --conditionsTag {conditions} --geometryVersion {geometry} --postInclude default:RecJobTransforms/UseFrontier.py",
+                            "process_type": "string-interpolated-cmd"
+                          },
+                          "publisher": {
+                            "publisher_type": "frompar-pub",
+                            "outputmap": {
+                              "esdfile": "esdfile",
+                              "aodfile": "aodfile"
+                            }
+                          },
+                          "environment": {
+                            "imagetag": "latest",
+                            "image": "lukasheinrich/athena_trfsbase",
+                            "envscript": "",
+                            "environment_type": "docker-encapsulated",
+                            "env": {},
+                            "resources": [
+                              "CVMFS",
+                              "GRIDProxy"
+                            ]
+                          }
+                        },
+                        "scheduler_type": "singlestep-stage",
+                        "parameters": [
+                          {
+                            "value": "{workdir}/my.ESD.pool.root",
+                            "key": "esdfile"
+                          },
+                          {
+                            "value": "default:ATLAS-R2-2015-03-01-00",
+                            "key": "geometry"
+                          },
+                          {
+                            "value": {
+                              "output": "rdofile",
+                              "stages": "digitization",
+                              "unwrap": true
+                            },
+                            "key": "rdofile"
+                          },
+                          {
+                            "value": "{workdir}/my.AOD.pool.root",
+                            "key": "aodfile"
+                          },
+                          {
+                            "value": -1,
+                            "key": "maxevts"
+                          },
+                          {
+                            "value": "default:OFLCOND-MC15c-SDR-09",
+                            "key": "conditions"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "dependencies": {
+                "dependency_type": "jsonpath_ready",
+                "expressions": [
+                  "sim_reco"
+                ]
+              },
+              "name": "derivation",
+              "scheduler": {
+                "step": {
+                  "process": {
+                    "cmd": "source resources/env_with_voms.sh AtlasDerivation,20.7.6.2,here && Reco_tf.py --AMI {ptag} --inputAODFile {aodfile} --outputDAODFile my.DAOD.pool.root && cp *my.DAOD.pool.root {daodfile}",
+                    "process_type": "string-interpolated-cmd"
+                  },
+                  "publisher": {
+                    "publisher_type": "frompar-pub",
+                    "outputmap": {
+                      "daodfile": "daodfile"
+                    }
+                  },
+                  "environment": {
+                    "imagetag": "latest",
+                    "image": "lukasheinrich/athena_trfsbase",
+                    "envscript": "",
+                    "environment_type": "docker-encapsulated",
+                    "env": {},
+                    "resources": [
+                      "CVMFS",
+                      "GRIDProxy"
+                    ]
+                  }
+                },
+                "scheduler_type": "singlestep-stage",
+                "parameters": [
+                  {
+                    "value": "p2656",
+                    "key": "ptag"
+                  },
+                  {
+                    "value": {
+                      "output": "aodfile",
+                      "stages": "sim_reco.[*].reconstruction",
+                      "unwrap": true
+                    },
+                    "key": "aodfile"
+                  },
+                  {
+                    "value": "{workdir}/my.DAOD.pool.root",
+                    "key": "daodfile"
+                  }
+                ]
+              }
+            },
+            {
+              "dependencies": {
+                "dependency_type": "jsonpath_ready",
+                "expressions": [
+                  "madgraph_gen"
+                ]
+              },
+              "name": "truth_derivation",
+              "scheduler": {
+                "step": {
+                  "process": {
+                    "cmd": "source resources/env.sh AtlasDerivation,20.7.6.2,here && Reco_tf.py --inputEVNTFile {evgenfile} --outputDAODFile my.DAOD.pool.root --reductionConf TRUTH0 && cp *my.DAOD.pool.root {truthderivation}",
+                    "process_type": "string-interpolated-cmd"
+                  },
+                  "publisher": {
+                    "publisher_type": "frompar-pub",
+                    "outputmap": {
+                      "truthderiv": "truthderivation"
+                    }
+                  },
+                  "environment": {
+                    "imagetag": "latest",
+                    "image": "lukasheinrich/athena_trfsbase",
+                    "envscript": "",
+                    "environment_type": "docker-encapsulated",
+                    "env": {},
+                    "resources": [
+                      "CVMFS"
+                    ]
+                  }
+                },
+                "scheduler_type": "singlestep-stage",
+                "parameters": [
+                  {
+                    "value": {
+                      "output": "ouputEVNT",
+                      "stages": "madgraph_gen.[*].generate",
+                      "unwrap": true
+                    },
+                    "key": "evgenfile"
+                  },
+                  {
+                    "value": "{workdir}/my.TRUTH_DAOD.pool.root",
+                    "key": "truthderivation"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "dependencies": {
+        "dependency_type": "jsonpath_ready",
+        "expressions": [
+          "parallel_production.[*].derivation"
+        ]
+      },
+      "name": "reco_daod_merge",
+      "scheduler": {
+        "step": {
+          "process": {
+            "cmd": "source resources/env.sh AtlasDerivation,20.7.6.2,here && hadd {mergedfile} {rootfiles}",
+            "process_type": "string-interpolated-cmd"
+          },
+          "publisher": {
+            "publisher_type": "frompar-pub",
+            "outputmap": {
+              "mergedfile": "mergedfile"
+            }
+          },
+          "environment": {
+            "imagetag": "latest",
+            "image": "lukasheinrich/athena_trfsbase",
+            "envscript": "",
+            "environment_type": "docker-encapsulated",
+            "env": {},
+            "resources": [
+              "CVMFS"
+            ]
+          }
+        },
+        "scheduler_type": "singlestep-stage",
+        "parameters": [
+          {
+            "value": "{workdir}/merged.DAOD.reco.pool.root",
+            "key": "mergedfile"
+          },
+          {
+            "value": {
+              "output": "daodfile",
+              "stages": "parallel_production.[*].derivation",
+              "flatten": true
+            },
+            "key": "rootfiles"
+          }
+        ]
+      }
+    },
+    {
+      "dependencies": {
+        "dependency_type": "jsonpath_ready",
+        "expressions": [
+          "parallel_production.[*].truth_derivation"
+        ]
+      },
+      "name": "truth_daod_merge",
+      "scheduler": {
+        "step": {
+          "process": {
+            "cmd": "source resources/env.sh AtlasDerivation,20.7.6.2,here && hadd {mergedfile} {rootfiles}",
+            "process_type": "string-interpolated-cmd"
+          },
+          "publisher": {
+            "publisher_type": "frompar-pub",
+            "outputmap": {
+              "mergedfile": "mergedfile"
+            }
+          },
+          "environment": {
+            "imagetag": "latest",
+            "image": "lukasheinrich/athena_trfsbase",
+            "envscript": "",
+            "environment_type": "docker-encapsulated",
+            "env": {},
+            "resources": [
+              "CVMFS"
+            ]
+          }
+        },
+        "scheduler_type": "singlestep-stage",
+        "parameters": [
+          {
+            "value": "{workdir}/merged.DAOD.truth.pool.root",
+            "key": "mergedfile"
+          },
+          {
+            "value": {
+              "output": "truthderiv",
+              "stages": "parallel_production.[*].truth_derivation",
+              "flatten": true
+            },
+            "key": "rootfiles"
+          }
+        ]
+      }
+    },
+    {
+      "dependencies": {
+        "dependency_type": "jsonpath_ready",
+        "expressions": [
+          "parallel_production.[*].phenoflow.[*].delphes"
+        ]
+      },
+      "name": "delphes_merge",
+      "scheduler": {
+        "step": {
+          "process": {
+            "cmd": "source resources/env.sh AtlasDerivation,20.7.6.2,here && hadd {mergedfile} {rootfiles}",
+            "process_type": "string-interpolated-cmd"
+          },
+          "publisher": {
+            "publisher_type": "frompar-pub",
+            "outputmap": {
+              "mergedfile": "mergedfile"
+            }
+          },
+          "environment": {
+            "imagetag": "latest",
+            "image": "lukasheinrich/athena_trfsbase",
+            "envscript": "",
+            "environment_type": "docker-encapsulated",
+            "env": {},
+            "resources": [
+              "CVMFS"
+            ]
+          }
+        },
+        "scheduler_type": "singlestep-stage",
+        "parameters": [
+          {
+            "value": "{workdir}/merged.delphes.root",
+            "key": "mergedfile"
+          },
+          {
+            "value": {
+              "output": "rootfile",
+              "stages": "parallel_production.[*].phenoflow.[*].delphes",
+              "flatten": true
+            },
+            "key": "rootfiles"
+          }
+        ]
+      }
+    }
+  ]
+}

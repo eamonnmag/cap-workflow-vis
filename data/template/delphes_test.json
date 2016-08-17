@@ -1,0 +1,159 @@
+{
+  "stages": [
+    {
+      "dependencies": {
+        "dependency_type": "jsonpath_ready",
+        "expressions": [
+          "init"
+        ]
+      },
+      "name": "rivet",
+      "scheduler": {
+        "step": {
+          "process": {
+            "cmd": "rivet -a {analysis} -H {outputyoda} {inputhepmc}",
+            "process_type": "string-interpolated-cmd"
+          },
+          "publisher": {
+            "publisher_type": "frompar-pub",
+            "outputmap": {
+              "yodafile": "outputyoda"
+            }
+          },
+          "environment": {
+            "imagetag": "latest",
+            "image": "lukasheinrich/rivet-with-tex",
+            "envscript": "",
+            "environment_type": "docker-encapsulated",
+            "env": {
+            },
+            "resources": []
+          }
+        },
+        "scheduler_type": "singlestep-stage",
+        "parameters": [
+          {
+            "value": "{workdir}/output.yoda",
+            "key": "outputyoda"
+          },
+          {
+            "value": {
+              "output": "hepmcfile",
+              "stages": "init"
+            },
+            "key": "inputhepmc"
+          },
+          {
+            "value": {
+              "output": "rivet_analysis",
+              "stages": "init",
+              "unwrap": true
+            },
+            "key": "analysis"
+          }
+        ]
+      }
+    },
+    {
+      "dependencies": {
+        "dependency_type": "jsonpath_ready",
+        "expressions": [
+          "rivet"
+        ]
+      },
+      "name": "rivetplots",
+      "scheduler": {
+        "step": {
+          "process": {
+            "cmd": "rivet-mkhtml -o {yodaplots} {inputyoda}",
+            "process_type": "string-interpolated-cmd"
+          },
+          "publisher": {
+            "publisher_type": "frompar-pub",
+            "outputmap": {
+              "plots": "yodaplots"
+            }
+          },
+          "environment": {
+            "imagetag": "latest",
+            "image": "lukasheinrich/rivet-with-tex",
+            "envscript": "",
+            "environment_type": "docker-encapsulated",
+            "env": {
+            },
+            "resources": []
+          }
+        },
+        "scheduler_type": "singlestep-stage",
+        "parameters": [
+          {
+            "value": {
+              "output": "yodafile",
+              "stages": "rivet"
+            },
+            "key": "inputyoda"
+          },
+          {
+            "value": "{workdir}/plots",
+            "key": "yodaplots"
+          }
+        ]
+      }
+    },
+    {
+      "dependencies": {
+        "dependency_type": "jsonpath_ready",
+        "expressions": [
+          "init"
+        ]
+      },
+      "name": "delphes",
+      "scheduler": {
+        "step": {
+          "process": {
+            "cmd": "DelphesHepMC  {delphes_card} {outputroot} {inputhepmc} && root2lhco {outputroot} {outputlhco}",
+            "process_type": "string-interpolated-cmd"
+          },
+          "publisher": {
+            "publisher_type": "frompar-pub",
+            "outputmap": {
+              "lhcofile": "outputlhco",
+              "rootfile": "outputroot"
+            }
+          },
+          "environment": {
+            "imagetag": "latest",
+            "image": "lukasheinrich/root-delphes",
+            "envscript": "",
+            "environment_type": "docker-encapsulated",
+            "env": {
+            },
+            "resources": []
+          }
+        },
+        "scheduler_type": "singlestep-stage",
+        "parameters": [
+          {
+            "value": "{workdir}/output.lhco",
+            "key": "outputlhco"
+          },
+          {
+            "value": "delphes/cards/delphes_card_ATLAS.tcl",
+            "key": "delphes_card"
+          },
+          {
+            "value": "{workdir}/output.root",
+            "key": "outputroot"
+          },
+          {
+            "value": {
+              "output": "hepmcfile",
+              "stages": "init"
+            },
+            "key": "inputhepmc"
+          }
+        ]
+      }
+    }
+  ]
+}

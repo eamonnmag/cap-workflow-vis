@@ -5,9 +5,8 @@
 var cap_workflow_vis_template = (function () {
 
     var dependency_map = {};
-    var groups = {};
     var graph = {'nodes': [], 'links': [], 'groups': []};
-    var node_count = 0, current_depth = 0, workflow_count = 0;
+    var node_count = 0, group_count = 0, stage_to_group = {}, output_nodes = {};
     var last_nodes = {
         'output': {'dependencies': null, 'node': null},
         'process': {'dependencies': null, 'node': null}
@@ -21,7 +20,7 @@ var cap_workflow_vis_template = (function () {
      * @param name
      * @param value
      */
-    function addNode(id, stage, type, name, value) {
+    function addNode(id, stage, type, name, value, parent_group) {
         var _node = {
             'id': id,
             'type': type,
@@ -31,20 +30,23 @@ var cap_workflow_vis_template = (function () {
 
         graph.nodes.push(_node);
 
-        if (!(stage in dependency_map[current_depth][workflow_count])) {
-            dependency_map[current_depth][workflow_count][stage] = {'id': id, 'outputs': {}};
+        var _group_dependency_map = dependency_map[parent_group.id];
+
+        if (!(stage in _group_dependency_map)) {
+            _group_dependency_map[stage] = {'id': id, 'outputs': {}};
         }
 
         if (type in last_nodes) {
             last_nodes[type]['node'] = _node;
-            last_nodes[type]['dependencies'] = dependency_map[current_depth][workflow_count][stage];
+            last_nodes[type]['dependencies'] = _group_dependency_map[stage];
+
         }
 
-        groups[current_depth][workflow_count].leaves.push(id);
+        parent_group.leaves.push(id);
 
-        if (dependency_map[current_depth][workflow_count][stage]) {
-            graph.links.push({'source': dependency_map[current_depth][workflow_count][stage].id, 'target': node_count});
-            dependency_map[current_depth][workflow_count][stage].outputs[name] = {
+        if (_group_dependency_map[stage]) {
+            graph.links.push({'source': _group_dependency_map[stage].id, 'target': node_count});
+            _group_dependency_map[stage].outputs[value.key ? value.key : name] = {
                 'id': id,
                 'name': value
             };
@@ -56,89 +58,108 @@ var cap_workflow_vis_template = (function () {
      * @param parameter
      * @param stage
      */
-    function processParameters(parameter, stage) {
+    function processParameters(parameter, stage, parent_group) {
         var _parameter_value = parameter.value;
-        var _stage = _parameter_value.stages;
+        var _parameter_stage = _parameter_value.stages;
 
-        if (_stage === 'init') {
-            if (!(_parameter_value.output in dependency_map[current_depth][workflow_count]['init'].outputs)) {
+        var _group_dependency_map = dependency_map[parent_group.id];
+
+        if (_parameter_stage === 'init') {
+
+            if (!(_parameter_value.key in _group_dependency_map['init'].outputs)) {
+
                 addNode(node_count, 'init', 'output',
-                    _parameter_value.output, _parameter_value.output);
+                    _parameter_value.output, parameter, parent_group);
+
+                output_nodes[parameter.key] = node_count;
 
                 graph.links.push({
                     'source': node_count,
-                    'target': dependency_map[current_depth][workflow_count][stage.name].id
+                    'target': _group_dependency_map[stage.name].id
                 });
 
                 node_count += 1;
+            } else {
+
             }
-        } else if (_stage in dependency_map[current_depth][workflow_count]) {
-            var output_node = dependency_map[current_depth][workflow_count][_stage]
+        } else if (_parameter_stage in _group_dependency_map) {
+            var output_node = _group_dependency_map[_parameter_stage]
                 .outputs[_parameter_value.output];
 
             if (output_node) {
                 graph.links.push({
                     'source': output_node.id,
-                    'target': dependency_map[current_depth][workflow_count][stage.name].id
+                    'target': _group_dependency_map[stage.name].id
                 })
             }
         } else {
-            // we have a sub chain
-            if (_stage && _stage.indexOf("[*]") !== -1) {
 
-                var last_dependency = dependency_map[current_depth + 1][workflow_count + 1];
+            if (_parameter_stage && _parameter_stage.indexOf("[*]") !== -1) {
+                var _path_parts = _parameter_stage.split(".");
+                var group_indx = stage_to_group[_path_parts[2]];
 
-                for (var dependency in last_dependency) {
-                    if (last_dependency[dependency].outputs
-                        && _parameter_value.output in last_dependency[dependency].outputs) {
-                        var _last_output_id = last_dependency[dependency]
-                            .outputs[_parameter_value.output].id;
-                    }
+                var last_dependency = dependency_map[group_indx][_path_parts[2]];
+
+                if (last_dependency.outputs
+                    && _parameter_value.output in last_dependency.outputs) {
+                    var _last_output_id = last_dependency.outputs[_parameter_value.output].id;
                 }
+
 
                 if (_last_output_id !== undefined)
                     graph.links.push({
                         'source': _last_output_id,
-                        'target': dependency_map[current_depth][workflow_count][stage.name].id
+                        'target': _group_dependency_map[stage.name].id
                     })
             }
         }
     }
 
 
+    function add_group_for_stage(stage, group) {
+        if (!(stage in stage_to_group))
+            stage_to_group[stage] = [];
+
+        stage_to_group[stage].push(group);
+    }
+
     /**
      *
      * @param stages
      * @param init_node
      */
-    function processStages(stages, init_node) {
+    function processStages(stages, init_node, parent) {
 
-        console.log(current_depth);
-
-        if (!(current_depth in dependency_map)) {
-            dependency_map[current_depth] = {};
-            groups[current_depth] = {};
+        if (!(group_count in dependency_map)) {
+            dependency_map[group_count] = {};
         }
 
-        if (!(workflow_count in dependency_map[current_depth])) {
-            groups[current_depth][workflow_count] = {'leaves': []};
-            dependency_map[current_depth][workflow_count] = {};
-        }
+        var _group_def = {'leaves': [], 'groups': [], 'subgroups': [], 'id': group_count};
+
+        parent.subgroups.push(_group_def);
+        parent.groups.push(_group_def.id);
 
         if (init_node) {
-            dependency_map[current_depth][workflow_count]['init'] = init_node.dependencies;
+            dependency_map[_group_def.id]['init'] = init_node.dependencies;
+            dependency_map[_group_def.id][init_node.name] = init_node.dependencies;
+
+            add_group_for_stage('init', _group_def.id);
+
             init_node.node.name = 'init';
             init_node.node.type = 'init';
-            groups[current_depth][workflow_count].leaves.push(init_node.node.id);
+
+            _group_def.leaves.push(init_node.node.id);
         } else {
-            addNode(node_count, 'init', 'init', 'init', {});
+            addNode(node_count, 'init', 'init', 'init', {}, _group_def);
             node_count += 1;
         }
 
+        group_count += 1;
 
         stages.forEach(function (stage) {
-
-            addNode(node_count, stage.name, 'process', stage.name, stage);
+            add_group_for_stage(stage.name, _group_def.id);
+            addNode(node_count, stage.name, 'process', stage.name, stage, _group_def);
+            _group_def.name = stage.name;
             node_count += 1;
 
             var scheduler = 'scheduler' in stage ? stage.scheduler : stage.rule;
@@ -148,7 +169,8 @@ var cap_workflow_vis_template = (function () {
                 // push outputs and link them to the process.
                 if ('publisher' in step) {
                     for (var output_key in step.publisher.outputmap) {
-                        addNode(node_count, stage.name, 'output', output_key);
+                        addNode(node_count, stage.name, 'output', output_key,
+                            step.publisher.outputmap[output_key], _group_def);
                         node_count += 1;
                     }
                 }
@@ -156,52 +178,35 @@ var cap_workflow_vis_template = (function () {
 
             if ('parameters' in scheduler) {
                 scheduler.parameters.forEach(function (parameter) {
-                    processParameters(parameter, stage);
+                    processParameters(parameter, stage, _group_def);
                 });
             }
 
             if ('workflow' in scheduler) {
-                current_depth += 1;
-                workflow_count += 1;
-                console.log("Processing workflow, number " + workflow_count);
-                processStages(scheduler.workflow.stages, last_nodes['process']);
-                current_depth -= 1;
-                workflow_count -= 1;
+                var parent = _group_def;
+                processStages(scheduler.workflow.stages, last_nodes['process'], parent);
             }
         });
-
-        graph.groups = [];
-        var _level_count = Object.keys(groups).length;
-        for (var level_idx in groups) {
-
-            for (var workflow_idx in groups[level_idx]) {
-                var _filtered_leaves = groups[level_idx][workflow_idx].leaves.filter(function (d) {
-                    return d != undefined;
-                });
-
-                var _group_def = {'leaves': _filtered_leaves, 'groups': [], 'color': 'white'};
-
-                if (level_idx == 0 && _level_count > 1)
-                    _group_def['groups'] = [1];
-                console.log(_group_def['groups']);
-
-                if (level_idx > 0)
-                    _group_def['color'] = '#f6f7f6';
-
-                graph.groups.push(_group_def);
-            }
-        }
-
-        return graph;
     }
 
     /**
      *
      * @param data
-     * @returns {Array}
+     * @returns {Object}
      */
     function generateGraph(data) {
-        return processStages(data);
+        var parent = {'subgroups': [], 'groups': [], 'id': 0};
+        processStages(data, null, parent);
+
+        var extracted_groups = [];
+        cap_workflow_vis.extractGroups(parent, extracted_groups);
+
+        graph.groups = extracted_groups;
+
+        console.log(parent);
+        console.log(output_nodes);
+
+        return graph;
     }
 
     return {

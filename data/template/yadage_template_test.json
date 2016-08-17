@@ -1,0 +1,310 @@
+{
+  "stages": [
+    {
+      "dependencies": {
+        "dependency_type": "jsonpath_ready",
+        "expressions": [
+          "init"
+        ]
+      },
+      "name": "download",
+      "scheduler": {
+        "step": {
+          "process": {
+            "cmd": "/resources/download.py {dataset} {outDir} {outList}",
+            "process_type": "string-interpolated-cmd"
+          },
+          "publisher": {
+            "publisher_type": "frompar-pub",
+            "outputmap": {
+              "output": "outList"
+            }
+          },
+          "environment": {
+            "imagetag": "latest",
+            "image": "lukasheinrich/dilepton_download",
+            "envscript": "/resources/downloadenv.sh",
+            "environment_type": "docker-encapsulated",
+            "env": {},
+            "resources": [
+              "CVMFS",
+              "GRIDProxy"
+            ]
+          }
+        },
+        "scheduler_type": "singlestep-stage",
+        "parameters": [
+          {
+            "value": "{workdir}/files.list",
+            "key": "outList"
+          },
+          {
+            "value": "{workdir}/grid_download",
+            "key": "outDir"
+          },
+          {
+            "value": {
+              "output": "dataset",
+              "stages": "init",
+              "unwrap": true
+            },
+            "key": "dataset"
+          }
+        ]
+      }
+    },
+    {
+      "dependencies": {
+        "dependency_type": "jsonpath_ready",
+        "expressions": [
+          "download"
+        ]
+      },
+      "name": "ntupling",
+      "scheduler": {
+        "step": {
+          "process": {
+            "cmd": "./DileptonAnalysis {blinded} {include_truth} {filter} {input_type} -maxsyst {maxsyst} -m {minintup} -f {filelist}",
+            "process_type": "string-interpolated-cmd"
+          },
+          "publisher": {
+            "publisher_type": "frompar-pub",
+            "outputmap": {
+              "output": "minintup"
+            }
+          },
+          "environment": {
+            "imagetag": "latest",
+            "image": "lukasheinrich/dilepton_ntupling",
+            "envscript": "/resources/ntuplingenv.sh",
+            "environment_type": "docker-encapsulated",
+            "env": {},
+            "resources": [
+              "CVMFS"
+            ]
+          }
+        },
+        "scheduler_type": "singlestep-stage",
+        "parameters": [
+          {
+            "value": "-truth",
+            "key": "include_truth"
+          },
+          {
+            "value": 1,
+            "key": "maxsyst"
+          },
+          {
+            "value": "-mc",
+            "key": "input_type"
+          },
+          {
+            "value": {
+              "output": "output",
+              "stages": "download",
+              "unwrap": true
+            },
+            "key": "filelist"
+          },
+          {
+            "value": "-nomllalpgenfilter",
+            "key": "filter"
+          },
+          {
+            "value": "{workdir}/mini.root",
+            "key": "minintup"
+          },
+          {
+            "value": "-unblind",
+            "key": "blinded"
+          }
+        ]
+      }
+    },
+    {
+      "dependencies": {
+        "dependency_type": "jsonpath_ready",
+        "expressions": [
+          "ntupling"
+        ]
+      },
+      "name": "histfitprepare",
+      "scheduler": {
+        "step": {
+          "process": {
+            "cmd": "python preparehistfit.py {miniroot} {efficiency_file} {xsections_file} {modelName} {histfittree_file} {yield_file}",
+            "process_type": "string-interpolated-cmd"
+          },
+          "publisher": {
+            "publisher_type": "frompar-pub",
+            "outputmap": {
+              "output_tree": "histfittree_file",
+              "output_yield": "yield_file"
+            }
+          },
+          "environment": {
+            "imagetag": "latest",
+            "image": "lukasheinrich/dilepton_histfitprep",
+            "envscript": "/resources/prepareenv.sh",
+            "environment_type": "docker-encapsulated",
+            "env": {},
+            "resources": [
+              "CVMFS"
+            ]
+          }
+        },
+        "scheduler_type": "singlestep-stage",
+        "parameters": [
+          {
+            "value": {
+              "output": "xsections_file",
+              "stages": "init",
+              "unwrap": true
+            },
+            "key": "xsections_file"
+          },
+          {
+            "value": {
+              "output": "output",
+              "stages": "ntupling",
+              "unwrap": true
+            },
+            "key": "miniroot"
+          },
+          {
+            "value": {
+              "output": "efficiency_file",
+              "stages": "init",
+              "unwrap": true
+            },
+            "key": "efficiency_file"
+          },
+          {
+            "value": "{workdir}/out.root",
+            "key": "histfittree_file"
+          },
+          {
+            "value": {
+              "output": "modelName",
+              "stages": "init",
+              "unwrap": true
+            },
+            "key": "modelName"
+          },
+          {
+            "value": "{workdir}/out.yield",
+            "key": "yield_file"
+          }
+        ]
+      }
+    },
+    {
+      "dependencies": {
+        "dependency_type": "jsonpath_ready",
+        "expressions": [
+          "histfitprepare"
+        ]
+      },
+      "name": "fit",
+      "scheduler": {
+        "step": {
+          "process": {
+            "cmd": "./luke_run_limit.sh {histfitroot} {fitresults}",
+            "process_type": "string-interpolated-cmd"
+          },
+          "publisher": {
+            "publisher_type": "frompar-pub",
+            "outputmap": {
+              "output": "fitresults"
+            }
+          },
+          "environment": {
+            "imagetag": "latest",
+            "image": "lukasheinrich/dilepton_fit",
+            "envscript": "/resources/fitenv.sh",
+            "environment_type": "docker-encapsulated",
+            "env": {},
+            "resources": [
+              "CVMFS"
+            ]
+          }
+        },
+        "scheduler_type": "singlestep-stage",
+        "parameters": [
+          {
+            "value": {
+              "output": "output_tree",
+              "stages": "histfitprepare",
+              "unwrap": true
+            },
+            "key": "histfitroot"
+          },
+          {
+            "value": "{workdir}/fit.tgz",
+            "key": "fitresults"
+          }
+        ]
+      }
+    },
+    {
+      "dependencies": {
+        "dependency_type": "jsonpath_ready",
+        "expressions": [
+          "fit"
+        ]
+      },
+      "name": "postproc",
+      "scheduler": {
+        "step": {
+          "process": {
+            "cmd": "/resources/pMSSM-TwoLep-Fit/post_fit.sh {fitresultsarchive} {workdir} {modelName} {resultsyaml}",
+            "process_type": "string-interpolated-cmd"
+          },
+          "publisher": {
+            "publisher_type": "frompar-pub",
+            "outputmap": {
+              "output": "resultsyaml"
+            }
+          },
+          "environment": {
+            "imagetag": "latest",
+            "image": "lukasheinrich/dilepton_fit",
+            "envscript": "/resources/fitenv.sh",
+            "environment_type": "docker-encapsulated",
+            "env": {},
+            "resources": [
+              "CVMFS"
+            ]
+          }
+        },
+        "scheduler_type": "singlestep-stage",
+        "parameters": [
+          {
+            "value": {
+              "output": "output",
+              "stages": "fit",
+              "unwrap": true
+            },
+            "key": "fitresultsarchive"
+          },
+          {
+            "value": "{workdir}/postproc",
+            "key": "workdir"
+          },
+          {
+            "value": "{workdir}/results.yaml",
+            "key": "resultsyaml"
+          },
+          {
+            "value": {
+              "output": "modelName",
+              "stages": "init",
+              "unwrap": true
+            },
+            "key": "modelName"
+          }
+        ]
+      }
+    }
+  ]
+}
